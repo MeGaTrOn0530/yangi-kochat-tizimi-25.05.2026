@@ -30,9 +30,17 @@ interface GreenhouseTabProps {
   locations: Location[];
   userRole: string;
   theme: 'light' | 'dark';
+  quarantinedShelves?: number[];
+  toggleShelfQuarantine?: (shelfId: number) => void;
 }
 
-export default function GreenhouseTab({ locations, userRole, theme }: GreenhouseTabProps) {
+export default function GreenhouseTab({ 
+  locations, 
+  userRole, 
+  theme,
+  quarantinedShelves: propQuarantinedShelves,
+  toggleShelfQuarantine: propToggleShelfQuarantine
+}: GreenhouseTabProps) {
   const isManager = userRole === 'admin' || userRole === 'director' || userRole === 'head_agronomist';
 
   // --- 1. Nutrition & Irrigation States ---
@@ -80,7 +88,10 @@ export default function GreenhouseTab({ locations, userRole, theme }: Greenhouse
 
   // --- 5. 2D Visual Layout Map Grid States ---
   const [selectedShelf, setSelectedShelf] = useState<number | null>(1);
-  const [quarantinedShelves, setQuarantinedShelves] = useState<number[]>([6]);
+  const [localQuarantinedShelves, setLocalQuarantinedShelves] = useState<number[]>([6]);
+  
+  const quarantinedShelves = propQuarantinedShelves !== undefined ? propQuarantinedShelves : localQuarantinedShelves;
+
   const [shelvesData, setShelvesData] = useState([
     { id: 1, name: 'Sektor A - Javon 1', crop: 'Tomato F1 Siluet', batch: 'PARTIYA-08', stage: 'Chiniqtirish', temp: '20°C', moisture: '65%', health: 'Excellent' },
     { id: 2, name: 'Sektor A - Javon 2', crop: 'Bodring Orzu F1', batch: 'PARTIYA-10', stage: 'Urug\' unish', temp: '24°C', moisture: '82%', health: 'Optimal' },
@@ -90,27 +101,31 @@ export default function GreenhouseTab({ locations, userRole, theme }: Greenhouse
     { id: 6, name: 'Sektor C - Javon 6', crop: 'Mog\'or xavfi ostidagi bo\'lim', batch: '—', stage: 'Karantin', temp: '18°C', moisture: '85%', health: 'Warning' }
   ]);
 
+  // Synchronize shelvesData attributes in real-time with quarantinedShelves (whether changed internally or externally)
+  useEffect(() => {
+    setShelvesData(current => current.map(item => {
+      const isCurrentlyQuarantined = quarantinedShelves.includes(item.id);
+      return {
+        ...item,
+        stage: isCurrentlyQuarantined 
+          ? 'Karantin'
+          : (item.id === 1 ? 'Chiniqtirish' : item.id === 2 ? 'Urug\' unish' : item.id === 3 ? 'Ko\'chatlik' : item.id === 5 ? 'Sotuvga tayyor' : '—'),
+        health: isCurrentlyQuarantined ? 'Warning' : (item.id === 4 ? '—' : 'Optimal')
+      };
+    }));
+  }, [quarantinedShelves]);
+
   const toggleShelfQuarantine = (shelfId: number) => {
-    setQuarantinedShelves(prev => {
-      const isCurrentlyQuarantined = prev.includes(shelfId);
-      const nextQuarantined = isCurrentlyQuarantined 
-        ? prev.filter(id => id !== shelfId) 
-        : [...prev, shelfId];
-      
-      setShelvesData(current => current.map(item => {
-        if (item.id === shelfId) {
-          return {
-            ...item,
-            stage: isCurrentlyQuarantined 
-              ? (shelfId === 1 ? 'Chiniqtirish' : shelfId === 2 ? 'Urug\' unish' : shelfId === 3 ? 'Ko\'chatlik' : shelfId === 5 ? 'Sotuvga tayyor' : '—')
-              : 'Karantin',
-            health: isCurrentlyQuarantined ? 'Optimal' : 'Warning'
-          };
-        }
-        return item;
-      }));
-      return nextQuarantined;
-    });
+    if (propToggleShelfQuarantine) {
+      propToggleShelfQuarantine(shelfId);
+    } else {
+      setLocalQuarantinedShelves(prev => {
+        const isCurrentlyQuarantined = prev.includes(shelfId);
+        return isCurrentlyQuarantined 
+          ? prev.filter(id => id !== shelfId) 
+          : [...prev, shelfId];
+      });
+    }
   };
 
   // Check if a shelf is adjacent to a quarantined shelf in the same visual shelf row
@@ -844,8 +859,8 @@ export default function GreenhouseTab({ locations, userRole, theme }: Greenhouse
                       : 'bg-amber-50 border-amber-400 text-amber-900 shadow-[0_0_12px_rgba(245,158,11,0.25)] animate-pulse';
                   } else if (isAdjacentWarning) {
                     bgCard = theme === 'dark'
-                      ? 'bg-amber-950/10 border-amber-600/70 text-amber-500 shadow-[0_0_15px_rgba(217,119,6,0.35)] animate-pulse'
-                      : 'bg-amber-50/50 border-amber-500 text-amber-800 shadow-[0_0_12px_rgba(217,119,6,0.25)] animate-pulse';
+                      ? 'bg-amber-950/20 border-amber-500 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.55)] animate-pulse ring-2 ring-amber-500/40'
+                      : 'bg-amber-50/70 border-amber-500 text-amber-800 shadow-[0_0_18px_rgba(245,158,11,0.45)] animate-pulse ring-2 ring-amber-500/30';
                   } else if (isSelected) {
                     bgCard = theme === 'dark' ? 'bg-emerald-950/25 border-[#00FF00] text-white shadow-lg' : 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-xs';
                   }

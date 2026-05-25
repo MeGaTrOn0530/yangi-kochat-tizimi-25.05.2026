@@ -7,9 +7,11 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cart
 interface TasksTabProps {
   userId: number;
   userRole: string;
+  quarantinedShelves?: number[];
+  toggleShelfQuarantine?: (shelfId: number) => void;
 }
 
-export default function TasksTab({ userId, userRole }: TasksTabProps) {
+export default function TasksTab({ userId, userRole, quarantinedShelves, toggleShelfQuarantine }: TasksTabProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -344,6 +346,33 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
             <span className={`font-bold uppercase ${overdueCount > 0 ? 'text-red-500 animate-pulse font-black' : 'text-slate-500 dark:text-[#888]'}`}>
               {overdueCount} ta yuklama
             </span>
+          </div>
+
+          {/* Toggle Quarantine Control integration */}
+          <div className="mt-4 pt-4 border-t border-dashed border-slate-100 dark:border-[#222222]">
+            <button
+              onClick={() => {
+                if (toggleShelfQuarantine) {
+                  toggleShelfQuarantine(6);
+                }
+              }}
+              className={`w-full py-2.5 px-3.5 rounded-xl font-mono text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 border transition-all duration-200 cursor-pointer ${
+                quarantinedShelves?.includes(6)
+                  ? 'bg-rose-500/15 border-rose-500/35 text-rose-500 hover:bg-rose-500/25 hover:border-rose-500 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse'
+                  : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-rose-500 hover:border-rose-500/35 hover:bg-rose-500/5 hover:shadow-md'
+              }`}
+              title="6-javondagi karantin holatini boshqarish"
+            >
+              <AlertTriangle className={`h-4 w-4 shrink-0 transition-transform ${quarantinedShelves?.includes(6) ? 'text-rose-500 animate-[bounce_1s_infinite]' : 'text-zinc-400 group-hover:text-rose-400'}`} />
+              <span>
+                {quarantinedShelves?.includes(6) ? "Karantin: FAOL (Javon 6)" : "Karantinni Yoqish (Javon 6)"}
+              </span>
+            </button>
+            <p className="mt-1.5 text-[9px] text-zinc-400 text-center font-mono uppercase tracking-tight">
+              {quarantinedShelves?.includes(6) 
+                ? "⚠️ Yon-atrof javonlar xavf ostida!" 
+                : "Oddiy ish tartibi faollashtirilgan"}
+            </p>
           </div>
         </div>
 
