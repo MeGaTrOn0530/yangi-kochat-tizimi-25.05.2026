@@ -367,6 +367,21 @@ export const api = {
     return res.json();
   },
 
+  // Notification settings control
+  async getNotificationSettings(): Promise<{ notificationsEnabled: boolean }> {
+    const res = await fetch(`${API_BASE}/settings/notifications`);
+    return res.json();
+  },
+
+  async updateNotificationSettings(notificationsEnabled: boolean): Promise<{ success: boolean; notificationsEnabled: boolean }> {
+    const res = await fetch(`${API_BASE}/settings/notifications`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notificationsEnabled })
+    });
+    return res.json();
+  },
+
   // Reports
   async getDashboardReport(): Promise<{ summary: any; locationStats: any[] }> {
     const res = await fetch(`${API_BASE}/reports/dashboard`);

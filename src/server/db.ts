@@ -1237,6 +1237,28 @@ class DatabaseManager {
     }
     return null;
   }
+
+  getNotificationSetting() {
+    try {
+      const configPath = path.join(process.cwd(), 'settings.json');
+      if (fs.existsSync(configPath)) {
+        const data = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        return data.notificationsEnabled ?? true;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return true; // default to true
+  }
+
+  setNotificationSetting(enabled: boolean) {
+    try {
+      const configPath = path.join(process.cwd(), 'settings.json');
+      fs.writeFileSync(configPath, JSON.stringify({ notificationsEnabled: enabled }, null, 2), 'utf-8');
+    } catch (e) {
+      console.error(e);
+    }
+  }
 }
 
 export const db = new DatabaseManager();

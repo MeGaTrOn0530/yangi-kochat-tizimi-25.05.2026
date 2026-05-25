@@ -102,6 +102,21 @@ export default function App() {
     localStorage.setItem('notif_browser_sim', String(notifBrowserSim));
   }, [notifBrowserSim]);
 
+  const [globalNotificationsEnabled, setGlobalNotificationsEnabled] = useState<boolean>(true);
+
+  // Fetch global settings
+  useEffect(() => {
+    const fetchGlobalSettings = async () => {
+      try {
+        const res = await api.getNotificationSettings();
+        setGlobalNotificationsEnabled(res.notificationsEnabled);
+      } catch (e) {
+        console.error("Error loading notification settings:", e);
+      }
+    };
+    fetchGlobalSettings();
+  }, [currentUser]);
+
   // Audio synthesis chime using native Web Audio API (cross-browser compatible/zero dependencies)
   const playElectronicChime = () => {
     try {
@@ -154,6 +169,16 @@ export default function App() {
     try {
       const TODAY_STR = "2026-05-25";
       const today = new Date(TODAY_STR);
+
+      // Check global master switch set by Admin
+      const settings = await api.getNotificationSettings();
+      const globalEnabled = settings.notificationsEnabled;
+      const isManager = user.role === 'admin' || user.role === 'director' || user.role === 'head_agronomist';
+
+      if (!globalEnabled && !isManager) {
+        console.log(`Global notifications are disabled by Administrator. Bypassing deadline scan alerts for employee: ${user.name}`);
+        return;
+      }
       
       // Fetch user's tasks
       const allTasks = await api.getTasks(user.role === 'admin' || user.role === 'director' || user.role === 'head_agronomist' ? undefined : user.id);
@@ -617,6 +642,55 @@ export default function App() {
                 {notifSoundEnabled ? <Volume2 className="h-3.5 w-3.5 text-[#00FF00]" /> : <VolumeX className="h-3.5 w-3.5 text-zinc-500" />}
               </button>
             </div>
+
+            {/* Admin/Manager Master Switch Toggle */}
+            {(currentUser.role === 'admin' || currentUser.role === 'director' || currentUser.role === 'head_agronomist') ? (
+              <div className="mb-2.5 pb-2 border-b border-dashed border-slate-200 dark:border-zinc-850">
+                <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-wide text-zinc-500">
+                  <span>⚙️ TIZIM MASTER SWITCH:</span>
+                  <span className={`font-bold ${globalNotificationsEnabled ? 'text-[#00FF00]' : 'text-red-500'}`}>
+                    {globalNotificationsEnabled ? '[OCHIQ / FAOL]' : '[YOPUQ / JALB]'}
+                  </span>
+                </div>
+                <div className="mt-1.5">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const nextVal = !globalNotificationsEnabled;
+                        const up = await api.updateNotificationSettings(nextVal);
+                        setGlobalNotificationsEnabled(up.notificationsEnabled);
+                        triggerToast(
+                          up.notificationsEnabled ? "TIZIM FAOL DEB BELGILANDI" : "TIZIM VAQTINChA YOPILDI",
+                          up.notificationsEnabled 
+                            ? "Barcha xodimlar va laborantlar uchun yaqinlashib kelayotgan topshiriqlar ogohlantirishi yoqildi."
+                            : "Barcha xodimlar uchun topshiriq ogohlantirishlari global ravishda o'chirildi.",
+                          up.notificationsEnabled ? 'success' : 'error',
+                          7000
+                        );
+                        if (notifSoundEnabled) playElectronicChime();
+                      } catch (e) {
+                        triggerToast("Xatolik", "Tizim kalitini o'zgartirishda xatolik yuz berdi.", "error");
+                      }
+                    }}
+                    className={`w-full py-1 font-mono text-[9px] font-black uppercase tracking-wider text-center border cursor-pointer transition-all duration-150 ${
+                      globalNotificationsEnabled
+                        ? 'bg-rose-950/20 hover:bg-rose-900/30 text-rose-500 border-rose-500/30'
+                        : 'bg-emerald-950/20 hover:bg-emerald-900/30 text-[#00FF00] border-emerald-500/30'
+                    }`}
+                    type="button"
+                  >
+                    {globalNotificationsEnabled ? "🔴 ALERTLARNI HAMMADA O'CHIRISH" : "🟢 ALERTLARNI HAMMADA YOQISH"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-2 pb-2 border-b border-dashed border-slate-200 dark:border-zinc-850 flex items-center justify-between font-mono text-[9px] uppercase text-zinc-500 select-none">
+                <span>RUXSAT HOLATI:</span>
+                <span className={`font-bold flex items-center gap-1 ${globalNotificationsEnabled ? 'text-[#00FF00]' : 'text-amber-500'}`}>
+                  {globalNotificationsEnabled ? '🟢 ADMIN RUXSAT BERGAN' : '🔴 ADMIN CHEKLAB QO\'YGAN'}
+                </span>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               {/* Channel Toggles */}

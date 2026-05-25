@@ -443,6 +443,17 @@ async function startServer() {
     res.json(updated);
   });
 
+  // Global Notification Settings API
+  app.get('/api/settings/notifications', (req, res) => {
+    res.json({ notificationsEnabled: (db as any).getNotificationSetting() });
+  });
+
+  app.put('/api/settings/notifications', (req, res) => {
+    const { notificationsEnabled } = req.body;
+    (db as any).setNotificationSetting(!!notificationsEnabled);
+    res.json({ success: true, notificationsEnabled: !!notificationsEnabled });
+  });
+
   // ==================== REPORTS API ====================
   app.get('/api/reports/dashboard', (req, res) => {
     const batches = db.getBatches();
