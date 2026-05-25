@@ -859,8 +859,8 @@ export default function GreenhouseTab({
                       : 'bg-amber-50 border-amber-400 text-amber-900 shadow-[0_0_12px_rgba(245,158,11,0.25)] animate-pulse';
                   } else if (isAdjacentWarning) {
                     bgCard = theme === 'dark'
-                      ? 'bg-amber-950/20 border-amber-500 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.55)] animate-pulse ring-2 ring-amber-500/40'
-                      : 'bg-amber-50/70 border-amber-500 text-amber-800 shadow-[0_0_18px_rgba(245,158,11,0.45)] animate-pulse ring-2 ring-amber-500/30';
+                      ? 'bg-red-950/20 border-red-500 text-rose-400 animate-warning-pulse ring-1 ring-red-500/30'
+                      : 'bg-red-50 border-red-400 text-rose-900 animate-warning-pulse ring-1 ring-red-500/20';
                   } else if (isSelected) {
                     bgCard = theme === 'dark' ? 'bg-emerald-950/25 border-[#00FF00] text-white shadow-lg' : 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-xs';
                   }
@@ -950,12 +950,14 @@ export default function GreenhouseTab({
                         <span className={`font-bold ${
                           quarantinedShelves.includes(activeShelf.id) 
                             ? 'text-amber-500 animate-pulse' 
-                            : activeShelf.health === 'Excellent' 
-                              ? 'text-emerald-500' 
-                              : activeShelf.health === 'Optimal' 
-                                ? 'text-sky-500' 
-                                : 'text-amber-500'
-                        }`}>{quarantinedShelves.includes(activeShelf.id) ? '⚠️ XAVF OSTIDA / KARANTIN' : activeShelf.health}</span>
+                            : isAdjacentToQuarantinedInSameRow(activeShelf.id)
+                              ? 'text-red-500 animate-pulse font-black'
+                              : activeShelf.health === 'Excellent' 
+                                ? 'text-emerald-500' 
+                                : activeShelf.health === 'Optimal' 
+                                  ? 'text-sky-500' 
+                                  : 'text-amber-500'
+                        }`}>{quarantinedShelves.includes(activeShelf.id) ? '⚠️ XAVF OSTIDA / KARANTIN' : isAdjacentToQuarantinedInSameRow(activeShelf.id) ? '⚠️ YONDOSH YAQLINLIKDAGI XAVF' : activeShelf.health}</span>
                       </div>
                     </div>
 
