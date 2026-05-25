@@ -1,0 +1,223 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;750;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Base Styles & Global Resets targeting the Bold Typography (Terminal/Brutalist) vibe */
+html, body {
+  background-color: #0A0A0A !important;
+  color: #E0E0E0 !important;
+  font-family: var(--font-sans);
+  margin: 0;
+  height: 100%;
+}
+
+/* Ensure container elements are completely dark with proper contrast */
+#root, .min-h-screen, .bg-slate-50, .bg-slate-50\/50, .bg-slate-50\/20, .bg-gray-50, .bg-gray-50\/50, .bg-slate-100 {
+  background-color: #0A0A0A !important;
+  color: #E0E0E0 !important;
+}
+
+/* Transform all panels and standard white cards into custom dark elements */
+.bg-white, .bg-slate-50, .bg-card, .bg-popover {
+  background-color: #111111 !important;
+  color: #E0E0E0 !important;
+}
+
+/* Change sidebar to `#0A0A0A` with clean `#333` right border */
+aside {
+  background-color: #0A0A0A !important;
+  border-right: 1px solid #333333 !important;
+}
+
+/* Convert all borders to sharp dark tones mapping to the #222 and #333 design criteria */
+.border, .border-r, .border-t, .border-b, .border-l,
+.border-gray-105, .border-gray-100, .border-gray-150, .border-gray-200, .border-gray-250, .border-slate-100, .border-slate-200 {
+  border-color: #222222 !important;
+}
+
+/* Hover over general cards transitions to green accent */
+.bg-white:hover {
+  border-color: #00FF00 !important;
+}
+
+.hover\:border-gray-150:hover, .hover\:border-gray-200:hover {
+  border-color: #00FF00 !important;
+}
+
+/* Sharp focus colors for Inputs, SELECT and TEXTAREA to match bold theme */
+input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea {
+  background-color: #0A0A0A !important;
+  border: 1px solid #333333 !important;
+  color: #FFFFFF !important;
+  border-radius: 4px !important;
+  font-family: var(--font-sans);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #00FF00 !important;
+  box-shadow: 0 0 0 1px #00FF00 !important;
+  outline: none !important;
+}
+
+/* Force high-visibility uppercase typography for head sizes */
+h1, h2, h3, h4, h5, h6, .card-title {
+  text-transform: uppercase !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+  color: #FFFFFF !important;
+}
+
+/* Huge header fonts */
+h1 {
+  font-size: 3rem !important; /* Bold dramatic */
+}
+
+h2 {
+  font-size: 2rem !important;
+}
+
+h3 {
+  font-size: 1.25rem !important;
+}
+
+/* Text gray and descriptions color settings for high contrast reading */
+.text-gray-950, .text-gray-900, .text-gray-800, .text-gray-750 {
+  color: #FFFFFF !important;
+}
+
+.text-gray-600, .text-gray-500, .text-gray-700 {
+  color: #A0A0A0 !important;
+}
+
+.text-gray-400, .text-gray-450 {
+  color: #666666 !important;
+}
+
+.text-gray-300 {
+  color: #B0B0B0 !important;
+}
+
+/* Secondary meta texts */
+.font-mono {
+  font-family: var(--font-mono) !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Active primary buttons and highlights using neon-green */
+.bg-emerald-600, .bg-emerald-700 {
+  background-color: #E0E0E0 !important;
+  color: #0A0A0A !important;
+  border: 1px solid #E0E0E0 !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+}
+
+.bg-emerald-600:hover, .bg-emerald-700:hover {
+  background-color: #00FF00 !important;
+  border-color: #00FF00 !important;
+  color: #0A0A0A !important;
+}
+
+/* Subtle accent states and alerts */
+.bg-emerald-50, .bg-emerald-100 {
+  background-color: rgba(0, 255, 0, 0.1) !important;
+  border-color: rgba(0, 255, 0, 0.3) !important;
+  color: #00FF00 !important;
+}
+
+.text-emerald-600, .text-emerald-700, .text-emerald-800, .text-emerald-850 {
+  color: #00FF00 !important;
+}
+
+/* Interactive navigation state */
+.bg-emerald-600.text-white {
+  background-color: #00FF00 !important;
+  color: #0A0A0A !important;
+  font-weight: 900 !important;
+}
+
+/* Dialog and Modals background override */
+.fixed.inset-0.bg-black\/40 {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Custom indicator dots */
+.bg-emerald-500 {
+  background-color: #00FF00 !important;
+}
+
+/* Table header color settings for high-contrast */
+thead tr, .bg-gray-50\/50, .bg-slate-50\/20 {
+  background-color: #161616 !important;
+  color: #888888 !important;
+}
+
+/* Custom scrollbars for full dark experience */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00FF00;
+}
+
+/* Custom badge/accent settings */
+.bg-indigo-50, .bg-indigo-100 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: #222222 !important;
+  color: #E0E0E0 !important;
+}
+.text-indigo-650, .text-indigo-700 {
+  color: #A0A0A0 !important;
+}
+
+.bg-amber-50, .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.2) !important;
+  color: #F59E0B !important;
+}
+.text-amber-600, .text-amber-700 {
+  color: #F59E0B !important;
+}
+
+.bg-red-50, .bg-red-100 {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+  color: #EF4444 !important;
+}
+.text-red-600, .text-red-750, .text-red-700 {
+  color: #EF4444 !important;
+}
+
+/* Remove circular borders and use brutalist square boundaries */
+button, select, input, textarea, div {
+  border-radius: 2px !important;
+}
+/* Except full circles like avatars and status indicators */
+.rounded-full {
+  border-radius: 50% !important;
+}
+
+/* Accent for buttons and hover state */
+.btn-primary {
+  background-color: #E0E0E0 !important;
+  color: #0A0A0A !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+}
+.btn-primary:hover {
+  background-color: #00FF00 !important;
+}
