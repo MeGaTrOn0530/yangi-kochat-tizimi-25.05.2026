@@ -102,7 +102,7 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
           <div>
             <span className="text-gray-400 text-xs font-mono uppercase tracking-wider block">Jarayonda (Tirik)</span>
             <span className="text-3xl font-bold font-sans text-gray-950 mt-1 block">{s.activeCount} <span className="text-xs text-gray-400 font-normal">ko'chat</span></span>
-            <span className="text-emerald-700 text-xs mt-1 inline-flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full">
+            <span className="text-emerald-700 text-xs mt-1 inline-flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md">
               Faol o'simliklar
             </span>
           </div>
@@ -115,7 +115,7 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
           <div>
             <span className="text-gray-400 text-xs font-mono uppercase tracking-wider block">Sotuvga Tayyor</span>
             <span className="text-3xl font-bold font-sans text-amber-600 mt-1 block">{s.readyCount} <span className="text-xs text-gray-400 font-normal">ko'chat</span></span>
-            <span className="text-amber-700 text-xs mt-1 inline-flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full">
+            <span className="text-amber-700 text-xs mt-1 inline-flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md">
               Uzatishga shay
             </span>
           </div>
@@ -128,7 +128,7 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
           <div>
             <span className="text-gray-400 text-xs font-mono uppercase tracking-wider block">Xavf / No-bud</span>
             <span className="text-3xl font-bold font-sans text-red-600 mt-1 block">{s.defectCount} <span className="text-xs text-gray-400 font-normal">ko'chat</span></span>
-            <span className="p-1 text-red-700 text-xs mt-1 inline-flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-full">
+            <span className="p-1 text-red-700 text-xs mt-1 inline-flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-md">
               Nuqson aniqlangan
             </span>
           </div>
@@ -143,7 +143,7 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
             <span className="text-2xl font-bold font-sans text-indigo-950 mt-1 block">
               {s.totalEarnings.toLocaleString('uz-UZ')} <span className="text-xs font-normal">so'm</span>
             </span>
-            <span className="text-indigo-700 text-xs mt-1 inline-flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-full">
+            <span className="text-indigo-700 text-xs mt-1 inline-flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md">
               Tasdiqlangan sotuvlar
             </span>
           </div>
@@ -201,9 +201,9 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
             <div className="flex flex-wrap gap-2 mb-6">
               <button 
                 onClick={() => setActiveLocFilter(null)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                className={`text-xs px-3.5 py-1.5 rounded-md border transition-all cursor-pointer font-bold ${
                   activeLocFilter === null 
-                    ? 'bg-emerald-650 text-white border-emerald-600' 
+                    ? 'bg-emerald-650 text-white border-emerald-600 shadow-sm' 
                     : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -213,9 +213,9 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
                 <button 
                   key={loc.id}
                   onClick={() => setActiveLocFilter(loc.id)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                  className={`text-xs px-3.5 py-1.5 rounded-md border transition-all cursor-pointer font-bold ${
                     activeLocFilter === loc.id 
-                      ? 'bg-emerald-650 text-white border-emerald-600' 
+                      ? 'bg-emerald-650 text-white border-emerald-600 shadow-sm' 
                       : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                   }`}
                 >

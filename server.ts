@@ -443,15 +443,14 @@ async function startServer() {
     res.json(updated);
   });
 
-  // Global Notification Settings API
-  app.get('/api/settings/notifications', (req, res) => {
-    res.json({ notificationsEnabled: (db as any).getNotificationSetting() });
+  // Global Settings API
+  app.get('/api/settings', (req, res) => {
+    res.json((db as any).getSystemSettings());
   });
 
-  app.put('/api/settings/notifications', (req, res) => {
-    const { notificationsEnabled } = req.body;
-    (db as any).setNotificationSetting(!!notificationsEnabled);
-    res.json({ success: true, notificationsEnabled: !!notificationsEnabled });
+  app.put('/api/settings', (req, res) => {
+    const updated = (db as any).setSystemSettings(req.body);
+    res.json(updated);
   });
 
   // ==================== REPORTS API ====================

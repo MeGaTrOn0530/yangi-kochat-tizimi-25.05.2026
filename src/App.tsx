@@ -15,6 +15,7 @@ import TransfersTab from './components/TransfersTab';
 import SalesTab from './components/SalesTab';
 import CatalogTab from './components/CatalogTab';
 import TasksTab from './components/TasksTab';
+import GreenhouseTab from './components/GreenhouseTab';
 
 import { 
   Leaf, 
@@ -43,7 +44,8 @@ import {
   Bell,
   Volume2,
   VolumeX,
-  Check
+  Check,
+  Sprout
 } from 'lucide-react';
 
 export default function App() {
@@ -103,15 +105,18 @@ export default function App() {
   }, [notifBrowserSim]);
 
   const [globalNotificationsEnabled, setGlobalNotificationsEnabled] = useState<boolean>(true);
+  const [greenhouseModulesEnabled, setGreenhouseModulesEnabled] = useState<boolean>(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
 
-  // Fetch global settings
+  // Fetch global system settings
   useEffect(() => {
     const fetchGlobalSettings = async () => {
       try {
-        const res = await api.getNotificationSettings();
+        const res = await api.getSystemSettings();
         setGlobalNotificationsEnabled(res.notificationsEnabled);
+        setGreenhouseModulesEnabled(res.greenhouseModulesEnabled);
       } catch (e) {
-        console.error("Error loading notification settings:", e);
+        console.error("Error loading system settings:", e);
       }
     };
     fetchGlobalSettings();
@@ -549,7 +554,9 @@ export default function App() {
       theme === 'dark' ? 'bg-[#0A0A0A] text-[#E0E0E0]' : 'bg-slate-50 text-slate-800'
     }`}>
       {/* Visual Navigation Sidebar */}
-      <aside className={`w-64 shrink-0 flex flex-col justify-between p-6 border-r transition-all duration-200 ${
+      <aside className={`${
+        sidebarCollapsed ? 'w-0 p-0 border-r-0 overflow-hidden' : 'w-64 p-6 border-r'
+      } shrink-0 flex flex-col justify-between transition-all duration-300 ${
         theme === 'dark' ? 'bg-[#0A0A0A] border-[#222222]' : 'bg-white border-slate-200'
       }`}>
         <div className="space-y-8">
@@ -643,52 +650,101 @@ export default function App() {
               </button>
             </div>
 
-            {/* Admin/Manager Master Switch Toggle */}
+            {/* Admin/Manager Master Switch Toggles */}
             {(currentUser.role === 'admin' || currentUser.role === 'director' || currentUser.role === 'head_agronomist') ? (
-              <div className="mb-2.5 pb-2 border-b border-dashed border-slate-200 dark:border-zinc-850">
-                <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-wide text-zinc-500">
-                  <span>⚙️ TIZIM MASTER SWITCH:</span>
-                  <span className={`font-bold ${globalNotificationsEnabled ? 'text-[#00FF00]' : 'text-red-500'}`}>
-                    {globalNotificationsEnabled ? '[OCHIQ / FAOL]' : '[YOPUQ / JALB]'}
-                  </span>
+              <div className="mb-2.5 pb-2 border-b border-dashed border-slate-200 dark:border-zinc-850 space-y-2">
+                <div>
+                  <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-wide text-zinc-500">
+                    <span>⚙️ TIZIM MASTER ALERTS:</span>
+                    <span className={`font-bold ${globalNotificationsEnabled ? 'text-[#00FF00]' : 'text-red-500'}`}>
+                      {globalNotificationsEnabled ? '[FAOL]' : '[YOPUQ]'}
+                    </span>
+                  </div>
+                  <div className="mt-1">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const nextVal = !globalNotificationsEnabled;
+                          const up = await api.updateSystemSettings({ notificationsEnabled: nextVal });
+                          setGlobalNotificationsEnabled(up.notificationsEnabled);
+                          triggerToast(
+                            up.notificationsEnabled ? "TIZIM FAOL DEB BELGILANDI" : "TIZIM VAQTINChA YOPILDI",
+                            up.notificationsEnabled 
+                              ? "Barcha xodimlar va laborantlar uchun yaqinlashib kelayotgan topshiriqlar ogohlantirishi yoqildi."
+                              : "Barcha xodimlar uchun topshiriq ogohlantirishlari global ravishda o'chirildi.",
+                            up.notificationsEnabled ? 'success' : 'error',
+                            7000
+                          );
+                          if (notifSoundEnabled) playElectronicChime();
+                        } catch (e) {
+                          triggerToast("Xatolik", "Tizim kalitini o'zgartirishda xatolik yuz berdi.", "error");
+                        }
+                      }}
+                      className={`w-full py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-center border cursor-pointer transition-all duration-150 rounded-md ${
+                        globalNotificationsEnabled
+                          ? 'bg-rose-950/20 hover:bg-rose-900/30 text-rose-500 border-rose-500/30'
+                          : 'bg-emerald-950/20 hover:bg-emerald-900/30 text-[#00FF00] border-emerald-500/30'
+                      }`}
+                      type="button"
+                    >
+                      {globalNotificationsEnabled ? "🔴 ALERTLARNI HAMMADA O'CHIRISH" : "🟢 ALERTLARNI HAMMADA YOQISH"}
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-1.5">
-                  <button
-                    onClick={async () => {
-                      try {
-                        const nextVal = !globalNotificationsEnabled;
-                        const up = await api.updateNotificationSettings(nextVal);
-                        setGlobalNotificationsEnabled(up.notificationsEnabled);
-                        triggerToast(
-                          up.notificationsEnabled ? "TIZIM FAOL DEB BELGILANDI" : "TIZIM VAQTINChA YOPILDI",
-                          up.notificationsEnabled 
-                            ? "Barcha xodimlar va laborantlar uchun yaqinlashib kelayotgan topshiriqlar ogohlantirishi yoqildi."
-                            : "Barcha xodimlar uchun topshiriq ogohlantirishlari global ravishda o'chirildi.",
-                          up.notificationsEnabled ? 'success' : 'error',
-                          7000
-                        );
-                        if (notifSoundEnabled) playElectronicChime();
-                      } catch (e) {
-                        triggerToast("Xatolik", "Tizim kalitini o'zgartirishda xatolik yuz berdi.", "error");
-                      }
-                    }}
-                    className={`w-full py-1 font-mono text-[9px] font-black uppercase tracking-wider text-center border cursor-pointer transition-all duration-150 ${
-                      globalNotificationsEnabled
-                        ? 'bg-rose-950/20 hover:bg-rose-900/30 text-rose-500 border-rose-500/30'
-                        : 'bg-emerald-950/20 hover:bg-emerald-900/30 text-[#00FF00] border-emerald-500/30'
-                    }`}
-                    type="button"
-                  >
-                    {globalNotificationsEnabled ? "🔴 ALERTLARNI HAMMADA O'CHIRISH" : "🟢 ALERTLARNI HAMMADA YOQISH"}
-                  </button>
+
+                <div>
+                  <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-wide text-zinc-500">
+                    <span>🌱 AQLLI MODULLAR:</span>
+                    <span className={`font-bold ${greenhouseModulesEnabled ? 'text-[#00FF00]' : 'text-amber-500'}`}>
+                      {greenhouseModulesEnabled ? '[OCHIQ]' : '[YOPUQ]'}
+                    </span>
+                  </div>
+                  <div className="mt-1">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const nextVal = !greenhouseModulesEnabled;
+                          const up = await api.updateSystemSettings({ greenhouseModulesEnabled: nextVal });
+                          setGreenhouseModulesEnabled(up.greenhouseModulesEnabled);
+                          triggerToast(
+                            up.greenhouseModulesEnabled ? "AQLLI MODULLAR YOQILDI" : "AQLLI MODULLAR CHIKLANDI",
+                            up.greenhouseModulesEnabled 
+                              ? "Barcha agronomlar uchun sug'orish, urug' unuvchanligi kalkulyatori hamda interaktiv 2D xaritalari faollashdi."
+                              : "Aqlli issiqxona modullari va maxsus jurnallar boshqa xodimlarda bloklandi.",
+                            up.greenhouseModulesEnabled ? 'success' : 'warning',
+                            7000
+                          );
+                          if (notifSoundEnabled) playElectronicChime();
+                        } catch (e) {
+                          triggerToast("Xatolik", "Aqlli modullar o'zgartirishida xatolik yuz berdi.", "error");
+                        }
+                      }}
+                      className={`w-full py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-center border cursor-pointer transition-all duration-150 rounded-md ${
+                        greenhouseModulesEnabled
+                          ? 'bg-amber-950/20 hover:bg-amber-900/10 text-amber-500 border-amber-500/30'
+                          : 'bg-sky-950/20 hover:bg-sky-900/30 text-sky-450 border-sky-500/30'
+                      }`}
+                      type="button"
+                    >
+                      {greenhouseModulesEnabled ? "🔒 MODULLARNI BLOKLASH" : "🔓 MODULLARNI RUXSAT BERISH"}
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="mb-2 pb-2 border-b border-dashed border-slate-200 dark:border-zinc-850 flex items-center justify-between font-mono text-[9px] uppercase text-zinc-500 select-none">
-                <span>RUXSAT HOLATI:</span>
-                <span className={`font-bold flex items-center gap-1 ${globalNotificationsEnabled ? 'text-[#00FF00]' : 'text-amber-500'}`}>
-                  {globalNotificationsEnabled ? '🟢 ADMIN RUXSAT BERGAN' : '🔴 ADMIN CHEKLAB QO\'YGAN'}
-                </span>
+              <div className="mb-2 pb-2 border-b border-dashed border-slate-200 dark:border-zinc-850 space-y-1 select-none font-mono text-[9px]">
+                <div className="flex items-center justify-between uppercase text-zinc-500">
+                  <span>ALERTLAR:</span>
+                  <span className={`font-bold ${globalNotificationsEnabled ? 'text-[#00FF00]' : 'text-amber-500'}`}>
+                    {globalNotificationsEnabled ? '🟢 RUXSAT ETILGAN' : '🔴 TAQIQLANGAN'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between uppercase text-zinc-500">
+                  <span>AQLLI MODULLAR:</span>
+                  <span className={`font-bold ${greenhouseModulesEnabled ? 'text-[#00FF00]' : 'text-amber-550'}`}>
+                    {greenhouseModulesEnabled ? '🟢 FAOL' : '🔴 ADMIN CHEKLAGAN'}
+                  </span>
+                </div>
               </div>
             )}
 
@@ -829,6 +885,36 @@ export default function App() {
               </button>
             )}
 
+            {/* Aqlli Issiqxona Tab */}
+            {(isAgr || isHead || isAdminRole || isDir) && (
+              <button
+                onClick={() => {
+                  if (!greenhouseModulesEnabled && !isAdminRole && !isHead) {
+                    triggerToast(
+                      "🔒 MODUL BLOKLANGAN",
+                      "Aqlli issiqxona maxsus tahlillari administrator tomonidan o'chirib qo'yilgan.",
+                      "warning"
+                    );
+                    return;
+                  }
+                  setActiveTab('greenhouse');
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
+                  activeTab === 'greenhouse' 
+                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
+                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
+                } ${(!greenhouseModulesEnabled && !isAdminRole && !isHead) ? 'opacity-50' : ''}`}
+                type="button"
+              >
+                <span className="flex items-center gap-2.5">
+                  <Sprout className="h-4 w-4 text-emerald-500 dark:text-[#00FF00]" /> Aqlli Issiqxona
+                </span>
+                {(!greenhouseModulesEnabled && !isAdminRole && !isHead) && (
+                  <span className="text-[7.5px] bg-amber-500/20 text-amber-500 font-mono px-1 border border-amber-500/20 rounded-sm">LOCKED</span>
+                )}
+              </button>
+            )}
+
             {/* Verification Chain (Approvals): Bosh Agronomy & Admin only */}
             {(isHead || isAdminRole) && (
               <button
@@ -956,23 +1042,39 @@ export default function App() {
       <main className={`flex-1 p-10 overflow-y-auto flex flex-col justify-start transition-colors duration-200 ${
         theme === 'dark' ? 'bg-[#0A0A0A]' : 'bg-slate-100'
       }`}>
-        {/* Unified Terminal Mainframe Header */}
+         {/* Unified Terminal Mainframe Header */}
         <header className={`flex justify-between items-baseline border-b pb-6 mb-10 shrink-0 select-none ${
           theme === 'dark' ? 'border-[#333333]' : 'border-slate-200'
         }`}>
-          <h1 className={`text-4xl font-black tracking-tight leading-none m-0 uppercase ${
-            theme === 'dark' ? 'text-white' : 'text-slate-900'
-          }`}>
-            {activeTab === 'dashboard' ? "MONITORING PANELI" : 
-             activeTab === 'batches' ? "URUG' & KO'CHAT PARTIYALARI" :
-             activeTab === 'scanner' ? "QR SKANERLASH TIZIMI" :
-             activeTab === 'approvals' ? "TASDIQLASH ZANJIRI" :
-             activeTab === 'transfers' ? "LOKATSIYALARARO O'TKAZISHLAR" :
-             activeTab === 'sales' ? "SOTUVLAR VA MOLIYA" :
-             activeTab === 'catalog' ? "NAV KATALOGI" :
-             activeTab === 'tasks' ? "TIZIM TOPSHIRIQLARI" :
-             activeTab === 'admin_users' ? "XODIMLAR BOSHQARUVI" : "TEPLITSA MONITOR"}
-          </h1>
+          <div className="flex items-center gap-3">
+            {/* COLLAPSIBLE TOGGLE HAMBURGER BUTTON */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className={`p-2 border transition-all rounded-md cursor-pointer ${
+                theme === 'dark' 
+                  ? 'bg-[#111] border-[#333] text-gray-400 hover:text-white hover:border-[#00FF00]' 
+                  : 'bg-white border-slate-250 text-slate-600 hover:text-black hover:bg-slate-50'
+              }`}
+              title={sidebarCollapsed ? "Asosiy panelni ko'rsatish" : "Asosiy panelni yashirish"}
+              type="button"
+            >
+              <Sliders className="h-4 w-4" />
+            </button>
+            <h1 className={`text-4xl font-black tracking-tight leading-none m-0 uppercase ${
+              theme === 'dark' ? 'text-white' : 'text-slate-900'
+            }`}>
+              {activeTab === 'dashboard' ? "MONITORING PANELI" : 
+               activeTab === 'greenhouse' ? "🌱 AQLLI ISSIQXONA" :
+               activeTab === 'batches' ? "URUG' & KO'CHAT PARTIYALARI" :
+               activeTab === 'scanner' ? "QR SKANERLASH TIZIMI" :
+               activeTab === 'approvals' ? "TASDIQLASH ZANJIRI" :
+               activeTab === 'transfers' ? "LOKATSIYALARARO O'TKAZISHLAR" :
+               activeTab === 'sales' ? "SOTUVLAR VA MOLIYA" :
+               activeTab === 'catalog' ? "NAV KATALOGI" :
+               activeTab === 'tasks' ? "TIZIM TOPSHIRIQLARI" :
+               activeTab === 'admin_users' ? "XODIMLAR BOSHQARUVI" : "TEPLITSA MONITOR"}
+            </h1>
+          </div>
           <div className="text-right">
             <p className={`text-[10px] font-mono uppercase tracking-widest leading-none mb-1 ${
               theme === 'dark' ? 'text-[#555]' : 'text-slate-400'
@@ -987,6 +1089,15 @@ export default function App() {
             plantTypes={plantTypes} 
             varieties={varieties} 
             userRole={currentUser.role}
+          />
+        )}
+
+        {/* TAB EXTRA: Aqlli Issiqxona Kengaytirilgan Modullari */}
+        {activeTab === 'greenhouse' && (isAgr || isHead || isAdminRole || isDir) && (
+          <GreenhouseTab 
+            locations={locations} 
+            userRole={currentUser.role}
+            theme={theme}
           />
         )}
 

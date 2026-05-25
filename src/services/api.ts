@@ -367,19 +367,30 @@ export const api = {
     return res.json();
   },
 
-  // Notification settings control
-  async getNotificationSettings(): Promise<{ notificationsEnabled: boolean }> {
-    const res = await fetch(`${API_BASE}/settings/notifications`);
+  // General System Settings Control
+  async getSystemSettings(): Promise<{ notificationsEnabled: boolean; greenhouseModulesEnabled: boolean }> {
+    const res = await fetch(`${API_BASE}/settings`);
     return res.json();
   },
 
-  async updateNotificationSettings(notificationsEnabled: boolean): Promise<{ success: boolean; notificationsEnabled: boolean }> {
-    const res = await fetch(`${API_BASE}/settings/notifications`, {
+  async updateSystemSettings(settings: { notificationsEnabled?: boolean; greenhouseModulesEnabled?: boolean }): Promise<{ notificationsEnabled: boolean; greenhouseModulesEnabled: boolean }> {
+    const res = await fetch(`${API_BASE}/settings`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notificationsEnabled })
+      body: JSON.stringify(settings)
     });
     return res.json();
+  },
+
+  // Backward compatibility legacy mappings
+  async getNotificationSettings(): Promise<{ notificationsEnabled: boolean }> {
+    const s = await this.getSystemSettings();
+    return { notificationsEnabled: s.notificationsEnabled };
+  },
+
+  async updateNotificationSettings(notificationsEnabled: boolean): Promise<{ success: boolean; notificationsEnabled: boolean }> {
+    const s = await this.updateSystemSettings({ notificationsEnabled });
+    return { success: true, notificationsEnabled: s.notificationsEnabled };
   },
 
   // Reports

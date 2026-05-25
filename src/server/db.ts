@@ -1238,26 +1238,41 @@ class DatabaseManager {
     return null;
   }
 
-  getNotificationSetting() {
+  getSystemSettings() {
     try {
       const configPath = path.join(process.cwd(), 'settings.json');
       if (fs.existsSync(configPath)) {
         const data = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        return data.notificationsEnabled ?? true;
+        return {
+          notificationsEnabled: data.notificationsEnabled ?? true,
+          greenhouseModulesEnabled: data.greenhouseModulesEnabled ?? true
+        };
       }
     } catch (e) {
       console.error(e);
     }
-    return true; // default to true
+    return { notificationsEnabled: true, greenhouseModulesEnabled: true };
   }
 
-  setNotificationSetting(enabled: boolean) {
+  setSystemSettings(settings: any) {
     try {
       const configPath = path.join(process.cwd(), 'settings.json');
-      fs.writeFileSync(configPath, JSON.stringify({ notificationsEnabled: enabled }, null, 2), 'utf-8');
+      const current = this.getSystemSettings();
+      const updated = { ...current, ...settings };
+      fs.writeFileSync(configPath, JSON.stringify(updated, null, 2), 'utf-8');
+      return updated;
     } catch (e) {
       console.error(e);
     }
+    return { notificationsEnabled: true, greenhouseModulesEnabled: true };
+  }
+
+  getNotificationSetting() {
+    return this.getSystemSettings().notificationsEnabled;
+  }
+
+  setNotificationSetting(enabled: boolean) {
+    this.setSystemSettings({ notificationsEnabled: enabled });
   }
 }
 
