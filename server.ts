@@ -430,6 +430,19 @@ async function startServer() {
     res.json(updated);
   });
 
+  app.post('/api/tasks/cleanup', (req, res) => {
+    const count = (db as any).archiveOldTasks();
+    res.json({ success: true, count });
+  });
+
+  app.put('/api/tasks/:id/archive', (req, res) => {
+    const id = parseInt(req.params.id);
+    const { isArchived } = req.body;
+    const updated = (db as any).toggleTaskArchive(id, !!isArchived);
+    if (!updated) return res.status(404).json({ error: "Topshiriq topilmadi." });
+    res.json(updated);
+  });
+
   // ==================== REPORTS API ====================
   app.get('/api/reports/dashboard', (req, res) => {
     const batches = db.getBatches();

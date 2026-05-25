@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { api } from '../services/api';
 import { Task, User } from '../types';
-import { ClipboardList, Plus, Clock, CheckCircle2, X, RefreshCw, AlertTriangle, Bell, ShieldAlert, Check, BarChart as BarChartIcon } from 'lucide-react';
+import { ClipboardList, Plus, Clock, CheckCircle2, X, RefreshCw, AlertTriangle, Bell, ShieldAlert, Check, BarChart as BarChartIcon, TrendingUp, Activity } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
 interface TasksTabProps {
@@ -25,6 +25,9 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
   const [notifications, setNotifications] = useState<string[]>([]);
   const [dismissedAlerts, setDismissedAlerts] = useState<number[]>([]);
 
+  // Filter state for active vs archived views
+  const [vazifaUslubi, setVazifaUslubi] = useState<'active' | 'archived' | 'all'>('active');
+
   // The fixed reference date in application context is 2026-05-25
   const TODAY_STR = "2026-05-25";
   const today = new Date(TODAY_STR);
@@ -32,6 +35,13 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
   const fetchTasksData = async () => {
     setLoading(true);
     try {
+      // Background Cleanup Job: silently archive any completed tasks older than 30 days
+      try {
+        await api.cleanupTasks();
+      } catch (cleanError) {
+        console.warn("Background task cleanup failed silently:", cleanError);
+      }
+
       const isPrivileged = userRole === 'admin' || userRole === 'director' || userRole === 'head_agronomist';
       const list = await api.getTasks(isPrivileged ? undefined : userId);
       setTasks(list);
@@ -63,6 +73,31 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBackgroundCleanup = async () => {
+    if (!window.confirm("Barcha 30 kundan oshgan yakunlangan topshiriqlarni arxivga ko'chirishni tasdiqlaysizmi?")) {
+      return;
+    }
+    try {
+      const res = await api.cleanupTasks();
+      if (res.success) {
+        alert(`Muvaffaqiyatli yakunlandi! ${res.count} ta muddati o'tgan bajarilgan vazifa arxivga yo'naltirildi.`);
+        fetchTasksData();
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Xatolik ro'y berdi.");
+    }
+  };
+
+  const handleToggleArchive = async (id: number, isArchived: boolean) => {
+    try {
+      await api.archiveTask(id, isArchived);
+      fetchTasksData();
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -166,6 +201,13 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
     return days >= 0 && days <= 2;
   }).length;
   const totalIncomplete = tasks.filter(t => t.status !== 'done').length;
+
+  // Real-time KPI Overview dashboard calculations
+  const activeTasksCount = tasks.filter(t => t.status !== 'done' && !t.is_archived).length;
+  const completedTodayCount = tasks.filter(t => t.status === 'done' && !t.is_archived).length;
+  const activeCycleTasksCount = tasks.filter(t => !t.is_archived).length;
+  const completedCycleCount = tasks.filter(t => t.status === 'done' && !t.is_archived).length;
+  const efficiencyScore = activeCycleTasksCount > 0 ? Math.round((completedCycleCount / activeCycleTasksCount) * 100) : 0;
 
   // Custom function to compute task completion rates per employee
   const computeEmployeePerformance = () => {
@@ -273,6 +315,119 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
         </div>
       )}
 
+      {/* Real-time KPI Dashboard Overview Grid */}
+      <div id="tasks-kpi-dashboard" className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+        
+        {/* KPI Panel: Active Tasks */}
+        <div id="kpi-card-active-tasks" className="p-6 bg-white dark:bg-[#111111] border border-slate-200 dark:border-[#222222] flex flex-col justify-between relative overflow-hidden group hover:border-blue-500/50 dark:hover:border-blue-500/55 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 dark:text-[#888888]">
+                Faol Vazifalar
+              </span>
+              <div className="p-2 bg-blue-500/10 text-blue-500 border border-blue-500/10 dark:border-blue-500/20">
+                <Clock className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-baseline gap-2">
+              <span className="text-4xl font-black text-slate-800 dark:text-white font-mono tracking-tight">
+                {activeTasksCount}
+              </span>
+              <span className="text-xs font-mono text-slate-400 dark:text-[#666] uppercase">
+                ta faol
+              </span>
+            </div>
+          </div>
+          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-[#222222] flex justify-between items-center text-[10px] font-mono">
+            <span className="text-slate-400 dark:text-[#666] uppercase">Muhlati o'tgan:</span>
+            <span className={`font-bold uppercase ${overdueCount > 0 ? 'text-red-500 animate-pulse font-black' : 'text-slate-500 dark:text-[#888]'}`}>
+              {overdueCount} ta yuklama
+            </span>
+          </div>
+        </div>
+
+        {/* KPI Panel: Completed Today */}
+        <div id="kpi-card-completed-today" className="p-6 bg-white dark:bg-[#111111] border border-slate-200 dark:border-[#222222] flex flex-col justify-between relative overflow-hidden group hover:border-emerald-500/50 dark:hover:border-emerald-500/55 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 dark:text-[#888888]">
+                Bajarilganlar (Sikl)
+              </span>
+              <div className="p-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/10 dark:border-emerald-500/20">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-baseline gap-2">
+              <span className="text-4xl font-black text-slate-800 dark:text-white font-mono tracking-tight">
+                {completedTodayCount}
+              </span>
+              <span className="text-xs font-mono text-slate-400 dark:text-[#666] uppercase">
+                bajarildi
+              </span>
+            </div>
+          </div>
+          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-[#222222] flex justify-between items-center text-[10px] font-mono">
+            <span className="text-slate-400 dark:text-[#666] uppercase">Arxivlanganlar:</span>
+            <span className="font-bold text-amber-500 uppercase">
+              {tasks.filter(t => t.is_archived).length} ta jami
+            </span>
+          </div>
+        </div>
+
+        {/* KPI Panel: Completion Efficiency Score */}
+        <div id="kpi-card-efficiency-score" className="p-6 bg-white dark:bg-[#111111] border border-slate-200 dark:border-[#222222] flex flex-col justify-between relative overflow-hidden group hover:border-emerald-500/50 dark:hover:border-emerald-500/55 transition-all duration-300">
+          <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${
+            efficiencyScore >= 80 ? 'from-emerald-500 to-teal-500' :
+            efficiencyScore >= 50 ? 'from-amber-500 to-orange-500' :
+            'from-red-500 to-rose-500'
+          }`}></div>
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 dark:text-[#888888]">
+                Sikl Samaradorligi
+              </span>
+              <div className={`p-2 border ${
+                efficiencyScore >= 80 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/10 dark:border-emerald-500/20' :
+                efficiencyScore >= 50 ? 'bg-amber-500/10 text-amber-500 border-amber-500/10 dark:border-amber-500/20' :
+                'bg-red-500/10 text-red-500 border-red-500/10 dark:border-red-500/20'
+              }`}>
+                <TrendingUp className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-black text-slate-800 dark:text-white font-mono tracking-tight">
+                  {efficiencyScore}%
+                </span>
+                <span className="text-xs font-mono text-slate-400 dark:text-[#666] uppercase">
+                  koeffitsiyent
+                </span>
+              </div>
+              
+              <div className="mt-3 w-full bg-slate-100 dark:bg-[#222222] h-1.5 overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-500 ${
+                    efficiencyScore >= 80 ? 'bg-emerald-500' :
+                    efficiencyScore >= 50 ? 'bg-amber-500' :
+                    'bg-red-500'
+                  }`}
+                  style={{ width: `${efficiencyScore}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#222222] flex justify-between items-center text-[10px] font-mono">
+            <span className="text-slate-400 dark:text-[#666] uppercase">Faol sikl yuklamalari:</span>
+            <span className="font-bold text-slate-700 dark:text-white">
+              {completedCycleCount} / {activeCycleTasksCount} yopildi
+            </span>
+          </div>
+        </div>
+
+      </div>
+
       {/* Task Performance Oversight Dashboard Widget */}
       <div className="p-6 bg-white dark:bg-[#111111] border border-slate-200 dark:border-[#222222] rounded-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#222222] pb-4 mb-6">
@@ -367,18 +522,72 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
             )}
           </div>
 
+          {/* Filter Navigation Segment & Administrative Cleanup Tool */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50 dark:bg-[#111111] border border-slate-200 dark:border-[#222222] p-3 text-xs">
+            <div className="flex flex-wrap gap-2 animate-fade-in">
+              <button
+                onClick={() => setVazifaUslubi('active')}
+                className={`px-3 py-1.5 font-mono font-bold uppercase tracking-tight text-[10px] rounded-none border transition-colors cursor-pointer ${
+                  vazifaUslubi === 'active'
+                    ? 'bg-emerald-600 dark:bg-[#00FF00] text-white dark:text-[#0a0a0a] border-transparent'
+                    : 'bg-white dark:bg-black text-slate-600 dark:text-[#888888] border-slate-200 dark:border-[#333333] hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Faol ({tasks.filter(t => !t.is_archived).length} ta)
+              </button>
+              <button
+                onClick={() => setVazifaUslubi('archived')}
+                className={`px-3 py-1.5 font-mono font-bold uppercase tracking-tight text-[10px] rounded-none border transition-colors cursor-pointer ${
+                  vazifaUslubi === 'archived'
+                    ? 'bg-amber-600 dark:bg-[#ffea00] text-white dark:text-[#0a0a0a] border-transparent'
+                    : 'bg-white dark:bg-black text-slate-600 dark:text-[#888888] border-slate-200 dark:border-[#333333] hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Arxivlangan ({tasks.filter(t => t.is_archived).length} ta)
+              </button>
+              <button
+                onClick={() => setVazifaUslubi('all')}
+                className={`px-3 py-1.5 font-mono font-bold uppercase tracking-tight text-[10px] rounded-none border transition-colors cursor-pointer ${
+                  vazifaUslubi === 'all'
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white border-transparent'
+                    : 'bg-white dark:bg-black text-slate-600 dark:text-[#888888] border-slate-200 dark:border-[#333333] hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Barchasi ({tasks.length} ta)
+              </button>
+            </div>
+
+            {isAdmin && (
+              <button
+                onClick={handleBackgroundCleanup}
+                className="bg-red-500/15 dark:bg-red-950/20 hover:bg-red-650 dark:hover:bg-red-600 hover:text-white text-red-600 dark:text-red-400 text-[10px] font-mono font-black uppercase px-3 py-1.5 border border-red-500/30 transition-all cursor-pointer select-none"
+                title="30 kundan eski bo'lgan bajarilgan barcha topshiriqlarni arxivga ko'chirish"
+              >
+                🧹 AUTO-ARCHIVE (30+ KUN)
+              </button>
+            )}
+          </div>
+
           {loading ? (
             <div className="text-center py-16 text-gray-400 font-mono text-xs flex flex-col items-center justify-center gap-3">
               <RefreshCw className="h-6 w-6 animate-spin text-[#00FF00]" />
               YUKLANMOQDA...
             </div>
-          ) : tasks.length === 0 ? (
+          ) : tasks.filter(task => {
+              if (vazifaUslubi === 'active') return !task.is_archived;
+              if (vazifaUslubi === 'archived') return !!task.is_archived;
+              return true;
+            }).length === 0 ? (
             <div className="bg-[#111111] p-16 text-center rounded-none border-2 border-dashed border-[#222222] text-[#666] font-mono text-xs uppercase tracking-widest">
-              Hozircha hech qanday topshiriqlar qo'shilmagan.
+              Ushbu bo'limda hech qanday topshiriqlar mavjud emas.
             </div>
           ) : (
             <div className="space-y-4">
-              {tasks.map((task, i) => {
+              {tasks.filter(task => {
+                if (vazifaUslubi === 'active') return !task.is_archived;
+                if (vazifaUslubi === 'archived') return !!task.is_archived;
+                return true;
+              }).map((task, i) => {
                 const assignee = users.find(u => u.id === task.assigned_to);
                 const assigner = users.find(u => u.id === task.assigned_by);
                 const deadlineInfo = getDeadlineStatus(task.deadline, task.status);
@@ -482,8 +691,22 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
                         )}
 
                         {task.status === 'done' && (
-                          <div className="text-[9px] font-mono text-[#00FF00] bg-emerald-950/20 px-3 py-1.5 border border-[#00FF00]/40 uppercase tracking-widest flex items-center gap-1">
-                            ✓ YAKUNLANDI (BAJARILDIG)
+                          <div className="flex flex-col gap-1.5 items-end">
+                            <div className="text-[9px] font-mono text-[#00FF00] bg-emerald-950/20 px-3 py-1.5 border border-[#00FF00]/40 uppercase tracking-widest flex items-center gap-1">
+                              ✓ YAKUNLANDI (BAJARILDI)
+                            </div>
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleToggleArchive(task.id, !task.is_archived)}
+                                className={`text-[9.5px] font-mono uppercase font-black tracking-tight px-3 py-1 mt-1.5 border transition-colors cursor-pointer ${
+                                  task.is_archived
+                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-black'
+                                    : 'bg-zinc-800/80 border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                                }`}
+                              >
+                                {task.is_archived ? "📂 Arxivdan chiqarish" : "📦 Arxivlash"}
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -533,6 +756,13 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
                   <span className="text-[#00FF00]">■ TAYYOR BO'LGANLAR:</span>
                   <span className="font-bold text-[#00FF00] text-sm">
                     {tasks.filter(t => t.status === 'done').length} ta
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs font-mono">
+                  <span className="text-amber-500">■ ARXIVLANGANLAR:</span>
+                  <span className="font-bold text-amber-500 text-sm">
+                    {tasks.filter(t => t.is_archived).length} ta
                   </span>
                 </div>
               </div>

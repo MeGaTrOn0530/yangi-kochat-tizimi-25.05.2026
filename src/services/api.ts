@@ -351,6 +351,22 @@ export const api = {
     return res.json();
   },
 
+  async cleanupTasks(): Promise<{ success: boolean; count: number }> {
+    const res = await fetch(`${API_BASE}/tasks/cleanup`, {
+      method: 'POST'
+    });
+    return res.json();
+  },
+
+  async archiveTask(id: number, isArchived: boolean): Promise<Task> {
+    const res = await fetch(`${API_BASE}/tasks/${id}/archive`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isArchived })
+    });
+    return res.json();
+  },
+
   // Reports
   async getDashboardReport(): Promise<{ summary: any; locationStats: any[] }> {
     const res = await fetch(`${API_BASE}/reports/dashboard`);

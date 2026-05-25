@@ -39,12 +39,182 @@ import {
   Activity,
   Sun,
   Moon,
-  Database
+  Database,
+  Bell,
+  Volume2,
+  VolumeX,
+  Check
 } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authEmail, setAuthEmail] = useState('');
+
+  // --- Real-time Notification System States (Visual Toasts & Audio Alert Options) ---
+  interface ToastItem {
+    id: string;
+    title: string;
+    desc: string;
+    type: 'error' | 'warning' | 'info' | 'success';
+    duration?: number;
+  }
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  // Sound chime toggle (defaults to True)
+  const [notifSoundEnabled, setNotifSoundEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('notif_sound_enabled') !== 'false';
+  });
+
+  // Task Warning threshold hours (defaults to 24 hours, can be 12, 24, 48, or 72)
+  const [notifThresholdHours, setNotifThresholdHours] = useState<number>(() => {
+    return Number(localStorage.getItem('notif_threshold_hours') || '24');
+  });
+
+  // Additional mock notification delivery channels for Managers to select (the requested variant options)
+  const [notifInAppEnabled, setNotifInAppEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('notif_in_app_enabled') !== 'false';
+  });
+  const [notifTelegramSim, setNotifTelegramSim] = useState<boolean>(() => {
+    return localStorage.getItem('notif_telegram_sim') === 'true';
+  });
+  const [notifBrowserSim, setNotifBrowserSim] = useState<boolean>(() => {
+    return localStorage.getItem('notif_browser_sim') === 'true';
+  });
+
+  // Synchronize options with LocalStorage
+  useEffect(() => {
+    localStorage.setItem('notif_sound_enabled', String(notifSoundEnabled));
+  }, [notifSoundEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('notif_threshold_hours', String(notifThresholdHours));
+  }, [notifThresholdHours]);
+
+  useEffect(() => {
+    localStorage.setItem('notif_in_app_enabled', String(notifInAppEnabled));
+  }, [notifInAppEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('notif_telegram_sim', String(notifTelegramSim));
+  }, [notifTelegramSim]);
+
+  useEffect(() => {
+    localStorage.setItem('notif_browser_sim', String(notifBrowserSim));
+  }, [notifBrowserSim]);
+
+  // Audio synthesis chime using native Web Audio API (cross-browser compatible/zero dependencies)
+  const playElectronicChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, now); // D5 Note
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5 Note
+      
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.12, now + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } catch (e) {
+      console.warn("Audio chime block:", e);
+    }
+  };
+
+  // Toast trigger helper
+  const triggerToast = (title: string, desc: string, type: 'error' | 'warning' | 'info' | 'success', duration = 12000) => {
+    if (!notifInAppEnabled && type !== 'error') return; // error toasts bypass disable
+    const id = Math.random().toString(36).substring(2, 11);
+    setToasts(prev => [...prev, { id, title, desc, type, duration }]);
+    
+    if (duration > 0) {
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+      }, duration);
+    }
+  };
+
+  // Perform deadline checks on user logins (real-time system check)
+  const checkUserDeadlines = async (user: User) => {
+    const sessionCheckKey = `checked_deadlines_sid_${user.id}`;
+    // Run exactly once per session to prevent repetitive disruption on hot reloading
+    if (sessionStorage.getItem(sessionCheckKey) === 'true') {
+      return;
+    }
+
+    try {
+      const TODAY_STR = "2026-05-25";
+      const today = new Date(TODAY_STR);
+      
+      // Fetch user's tasks
+      const allTasks = await api.getTasks(user.role === 'admin' || user.role === 'director' || user.role === 'head_agronomist' ? undefined : user.id);
+      
+      // Filter tasks assigned to them which are active (not completed or archived)
+      const userTasks = allTasks.filter(t => t.assigned_to === user.id && t.status !== 'done' && !t.is_archived);
+      
+      // Filter those with approaching remaining deadline hours <= threshold hours
+      const urgentTasks = userTasks.filter(task => {
+        if (!task.deadline) return false;
+        const taskDate = new Date(task.deadline);
+        const timeDiff = taskDate.getTime() - today.getTime();
+        const hoursRemaining = timeDiff / (1000 * 3600);
+        return hoursRemaining >= 0 && hoursRemaining <= notifThresholdHours;
+      });
+
+      if (urgentTasks.length > 0) {
+        sessionStorage.setItem(sessionCheckKey, 'true');
+        
+        urgentTasks.forEach((task, index) => {
+          setTimeout(() => {
+            const warningMessage = `"${task.title}" topshiriq muddati tugashiga ${notifThresholdHours} soatdan kam vaqt qoldi. Yakuniy muddat: ${task.deadline}.`;
+            
+            // Channel 1: In-App visual Toast
+            triggerToast(
+              "⚠️ TOPSHIRIQ MUHLATI YaQIN!",
+              warningMessage,
+              'warning',
+              14000
+            );
+
+            // Channel 2: Mock Telegram channel notification log
+            if (notifTelegramSim) {
+              console.log(`[Telegram Bot simulation API]: Broadcasted warning to user ${user.name}: ${warningMessage}`);
+            }
+
+            // Channel 3: Mock browser system notification log
+            if (notifBrowserSim) {
+              console.log(`[Browser Push Notification simulation API]: Triggered alert on device for ${user.name}: ${task.title}`);
+            }
+
+          }, index * 450);
+        });
+
+        // Trigger Audio Warning Chime
+        if (notifSoundEnabled) {
+          playElectronicChime();
+        }
+      }
+    } catch (e) {
+      console.error("Error running login deadline check:", e);
+    }
+  };
+
+  // Run deadlines verification hook whenever the user logs in
+  useEffect(() => {
+    if (currentUser) {
+      checkUserDeadlines(currentUser);
+    }
+  }, [currentUser, notifThresholdHours, notifSoundEnabled]);
+
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
@@ -422,6 +592,150 @@ export default function App() {
               }`}>
                 {currentUser.role.replace('_', ' ')}
               </span>
+            </div>
+          </div>
+
+          {/* Real-time Notification Controller & Variant Sandbox */}
+          <div className={`p-4 rounded-none border text-[10.5px] font-sans ${
+            theme === 'dark' ? 'bg-[#111111] border-[#222222]' : 'bg-slate-50 border-slate-200 shadow-xs'
+          }`}>
+            <div className="flex items-center justify-between border-b pb-2 mb-2 border-slate-200 dark:border-[#222222]">
+              <span className={`font-mono font-black uppercase text-[10px] tracking-wider ${
+                theme === 'dark' ? 'text-white' : 'text-slate-900'
+              }`}>🔔 Xabarnomalar</span>
+              <button
+                onClick={() => {
+                  setNotifSoundEnabled(!notifSoundEnabled);
+                  playElectronicChime();
+                }}
+                className={`p-1 rounded-none hover:bg-zinc-800/10 dark:hover:bg-zinc-800 cursor-pointer ${
+                  notifSoundEnabled ? 'text-[#00FF00]' : 'text-zinc-500'
+                }`}
+                title={notifSoundEnabled ? "Chime audio alerts are enabled" : "Chime audio alerts are muted"}
+                type="button"
+              >
+                {notifSoundEnabled ? <Volume2 className="h-3.5 w-3.5 text-[#00FF00]" /> : <VolumeX className="h-3.5 w-3.5 text-zinc-500" />}
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              {/* Channel Toggles */}
+              <div className="flex items-center justify-between font-mono text-[9px] text-[#888888] uppercase select-none">
+                <span>1. In-App Toast:</span>
+                <button 
+                  onClick={() => {
+                    setNotifInAppEnabled(!notifInAppEnabled);
+                    triggerToast("BOSHQA VARIANT: SOZLAMALAR YAXSHILANDI", "Visual toast xabarnomalar tizimi yangilandi.", "info", 5000);
+                  }}
+                  className={`px-1.5 py-0.5 font-bold cursor-pointer text-[8px] rounded-xs border border-transparent ${
+                    notifInAppEnabled ? 'text-[#00FF00] dark:bg-emerald-950/20' : 'text-zinc-500 hover:text-white'
+                  }`}
+                  type="button"
+                >
+                  {notifInAppEnabled ? "[FAOL]" : "[YUPUQ]"}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between font-mono text-[9px] text-[#888888] uppercase select-none">
+                <span>2. Telegram Bot:</span>
+                <button 
+                  onClick={() => {
+                    setNotifTelegramSim(!notifTelegramSim);
+                    triggerToast("Telegram kanali sozlandi", "Telegram bot simulyatsiyasi o'zgartirildi.", "info", 5000);
+                  }}
+                  className={`px-1.5 py-0.5 font-bold cursor-pointer text-[8px] rounded-xs border border-transparent ${
+                    notifTelegramSim ? 'text-sky-400 dark:bg-sky-950/20' : 'text-zinc-500 hover:text-white'
+                  }`}
+                  type="button"
+                >
+                  {notifTelegramSim ? "[SIMUL]" : "[YUPUQ]"}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between font-mono text-[9px] text-[#888888] uppercase select-none">
+                <span>3. Sistem Push:</span>
+                <button 
+                  onClick={() => {
+                    setNotifBrowserSim(!notifBrowserSim);
+                    triggerToast("Tizim Push simulyatori", "Browser orqali simulyatsiya sozlamalari yangilandi.", "info", 5000);
+                  }}
+                  className={`px-1.5 py-0.5 font-bold cursor-pointer text-[8px] rounded-xs border border-transparent ${
+                    notifBrowserSim ? 'text-amber-500 dark:bg-amber-950/20' : 'text-zinc-500 hover:text-white'
+                  }`}
+                  type="button"
+                >
+                  {notifBrowserSim ? "[SIMUL]" : "[YUPUQ]"}
+                </button>
+              </div>
+
+              {/* Threshold Selection */}
+              <div className="pt-1 flex items-center justify-between select-none">
+                <span className="text-[9px] text-zinc-500 dark:text-[#888888] font-bold uppercase shrink-0 font-mono">Muhlat oralig'i:</span>
+                <select
+                  value={notifThresholdHours}
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    setNotifThresholdHours(val);
+                    triggerToast("Oraliq yangilandi", `Task ogohlantirish muddati ${val} soatga sozladi.`, "info", 6000);
+                  }}
+                  className="bg-white dark:bg-black text-[9px] py-0.5 px-1 border border-zinc-200 dark:border-zinc-800 text-right font-mono text-zinc-700 dark:text-zinc-300 w-18"
+                >
+                  <option value={12}>12 soat</option>
+                  <option value={24}>24 soat</option>
+                  <option value={48}>48 soat</option>
+                  <option value={72}>72 soat</option>
+                </select>
+              </div>
+
+              {/* Simulation Sandbox / Sandbox Variants for Managers to interact */}
+              <div className="pt-2 border-t border-slate-200 dark:border-[#222222] grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() => {
+                    triggerToast(
+                      "⏳ MUHLAT YaQIN (OGOHLANTIRISH)",
+                      `"Datchik darchasini dezinfeksiyalash" topshirig'ingiz muddati yakunlanishiga kamida ${notifThresholdHours} soat qoldi.`,
+                      'warning'
+                    );
+                    if (notifSoundEnabled) playElectronicChime();
+                  }}
+                  className="bg-slate-100 dark:bg-zinc-900 text-amber-600 dark:text-amber-400 hover:bg-amber-600 dark:hover:bg-[#ffea00] hover:text-white dark:hover:text-black transition-all p-1 text-[8px] font-mono font-bold uppercase select-none cursor-pointer border border-zinc-200 dark:border-[#333333]"
+                  type="button"
+                >
+                  ⚡ test sarg'ish
+                </button>
+                <button
+                  onClick={() => {
+                    triggerToast(
+                      "🎉 VAZIFA MUvAFFAQIYATLI YAKUNLANDI",
+                      "O'tkazilgan tahlillar natijasida barcha datchiklar muvaffaqiyatli topshirildi va hisobot tasdiqlandi.",
+                      'success'
+                    );
+                    try {
+                      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                      const ctx = new AudioCtx();
+                      const now = ctx.currentTime;
+                      const osc = ctx.createOscillator();
+                      const gain = ctx.createGain();
+                      osc.type = 'sine';
+                      osc.frequency.setValueAtTime(523.25, now); // C5
+                      osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                      osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                      osc.frequency.setValueAtTime(1046.5, now + 0.3); // C6
+                      gain.gain.setValueAtTime(0, now);
+                      gain.gain.linearRampToValueAtTime(0.12, now + 0.05);
+                      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                      osc.connect(gain);
+                      gain.connect(ctx.destination);
+                      osc.start(now);
+                      osc.stop(now + 0.5);
+                    } catch(e) {}
+                  }}
+                  className="bg-slate-100 dark:bg-zinc-900 text-emerald-600 dark:text-[#00FF00] hover:bg-emerald-600 dark:hover:bg-[#00FF00] hover:text-white dark:hover:text-black transition-all p-1 text-[8px] font-mono font-bold uppercase select-none cursor-pointer border border-zinc-200 dark:border-[#333333]"
+                  type="button"
+                >
+                  🚀 test yashil
+                </button>
+              </div>
             </div>
           </div>
 
@@ -829,6 +1143,73 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Real-time Floating Toast Notification Overlay Wrapper (renders in-app toast alerts) */}
+      <div id="toast-overlay-wrapper" className="fixed bottom-6 right-6 z-50 flex flex-col gap-3.5 max-w-sm w-full select-none pointer-events-none">
+        {toasts.map((toast) => {
+          const isWarning = toast.type === 'warning';
+          const isError = toast.type === 'error';
+          const isSuccess = toast.type === 'success';
+          const isInfo = toast.type === 'info';
+
+          return (
+            <div
+              key={toast.id}
+              className={`pointer-events-auto p-4 border shadow-2xl animate-slide-in relative overflow-hidden transition-all duration-300 flex items-start gap-4 rounded-xl ${
+                theme === 'dark'
+                  ? isWarning ? 'bg-[#181308] border-amber-500/50 text-amber-300' :
+                    isError ? 'bg-[#1a0c0c] border-red-500/50 text-red-300' :
+                    isSuccess ? 'bg-[#0a170f] border-[#00FF00]/50 text-emerald-300' :
+                    'bg-[#08121a] border-sky-500/50 text-sky-300'
+                  : isWarning ? 'bg-amber-50/95 border-amber-300 text-amber-900 shadow-amber-100/40 backdrop-blur-md' :
+                    isError ? 'bg-red-50/95 border-red-300 text-red-900 shadow-red-100/40 backdrop-blur-md' :
+                    isSuccess ? 'bg-emerald-50/95 border-emerald-300 text-emerald-900 shadow-emerald-100/40 backdrop-blur-md' :
+                    'bg-sky-50/95 border-sky-300 text-sky-900 shadow-sky-100/40 backdrop-blur-md'
+              }`}
+            >
+              {/* Highlight bar indicators */}
+              <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${
+                isWarning ? 'bg-amber-500 animate-pulse' :
+                isError ? 'bg-red-500' :
+                isSuccess ? 'bg-[#00FF00]' :
+                'bg-sky-500'
+              }`}></div>
+
+              {/* Toast Icon */}
+              <div className="shrink-0 mt-0.5">
+                {isWarning && <Bell className="h-4.5 w-4.5 text-amber-500 animate-bounce" />}
+                {isError && <ShieldAlert className="h-4.5 w-4.5 text-red-500" />}
+                {isSuccess && <Check className="h-4.5 w-4.5 text-emerald-500 dark:text-[#00FF00]" />}
+                {isInfo && <Activity className="h-4.5 w-4.5 text-sky-500" />}
+              </div>
+
+              {/* Toast content text */}
+              <div className="flex-grow min-w-0">
+                <h4 className="font-mono font-black uppercase tracking-wider text-[10.5px] mb-1">
+                  {toast.title}
+                </h4>
+                <p className="text-[10.5px] font-sans leading-relaxed opacity-95">
+                  {toast.desc}
+                </p>
+              </div>
+
+              {/* Manual Dismiss */}
+              <button
+                onClick={() => {
+                  setToasts(prev => prev.filter(t => t.id !== toast.id));
+                }}
+                className={`p-0.5 hover:scale-110 transition-transform cursor-pointer opacity-60 hover:opacity-100 ${
+                  theme === 'dark' ? 'text-white' : 'text-slate-705'
+                }`}
+                type="button"
+                title="Xabarnomani yopish"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -163,5 +163,6 @@ export interface Task {
   description: string;
   deadline: string;
   status: TaskStatus;
+  is_archived?: boolean;
   created_at: string;
 }

@@ -141,6 +141,39 @@ const initialDbState: DatabaseSchema = {
       deadline: "2026-05-28",
       status: "open",
       created_at: "2026-05-24T09:30:00Z"
+    },
+    {
+      id: 3,
+      assigned_to: 4,
+      assigned_by: 2,
+      title: "Pomidor kasetalarini dezinfeksiyalash (Arxivlandi)",
+      description: "1-issiqxonadagi barcha bo'sh pomidor kasetalarini maxsus dezinfeksiya eritmasi bilan yuvish va tozalash.",
+      deadline: "2026-04-10",
+      status: "done",
+      is_archived: true,
+      created_at: "2026-04-05T08:00:00Z"
+    },
+    {
+      id: 4,
+      assigned_to: 5,
+      assigned_by: 2,
+      title: "Bodring urug'lari namligini laboratoriya tekshiruvi (Arxivbop)",
+      description: "Ekiladigan yangi F1-durgeyli bodring urug'larining unib chiqish darajasi va namlik foizini laboratoriyada aniqlash.",
+      deadline: "2026-04-15",
+      status: "done",
+      is_archived: false,
+      created_at: "2026-04-11T10:00:00Z"
+    },
+    {
+      id: 5,
+      assigned_to: 4,
+      assigned_by: 3,
+      title: "Kritik: Datchik darchasini dezinfeksiyalash va sozlash",
+      description: "24 soat ichida 1-issiqxonadagi barcha harorat va namlik datchiklarini butunlay tozalash va sozlash.",
+      deadline: "2026-05-26",
+      status: "in_progress",
+      is_archived: false,
+      created_at: "2026-05-25T07:00:00Z"
     }
   ]
 };
@@ -1167,6 +1200,38 @@ class DatabaseManager {
     const index = this.state.tasks.findIndex(t => t.id === id);
     if (index !== -1) {
       this.state.tasks[index].status = status;
+      this.save();
+      return this.state.tasks[index];
+    }
+    return null;
+  }
+
+  archiveOldTasks() {
+    const today = new Date("2026-05-25");
+    let count = 0;
+    this.state.tasks = this.state.tasks.map(task => {
+      if (task.status === 'done' && !task.is_archived) {
+        const refDate = new Date(task.deadline || task.created_at);
+        const timeDiff = today.getTime() - refDate.getTime();
+        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        if (daysDiff > 30) {
+          count++;
+          return { ...task, is_archived: true };
+        }
+      }
+      return task;
+    });
+
+    if (count > 0) {
+      this.save();
+    }
+    return count;
+  }
+
+  toggleTaskArchive(id: number, isArchived: boolean) {
+    const index = this.state.tasks.findIndex(t => t.id === id);
+    if (index !== -1) {
+      this.state.tasks[index].is_archived = isArchived;
       this.save();
       return this.state.tasks[index];
     }
