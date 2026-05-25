@@ -1,7 +1,8 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { api } from '../services/api';
 import { Task, User } from '../types';
-import { ClipboardList, Plus, Clock, CheckCircle2, X, RefreshCw, AlertTriangle, Bell, ShieldAlert, Check } from 'lucide-react';
+import { ClipboardList, Plus, Clock, CheckCircle2, X, RefreshCw, AlertTriangle, Bell, ShieldAlert, Check, BarChart as BarChartIcon } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
 interface TasksTabProps {
   userId: number;
@@ -166,6 +167,72 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
   }).length;
   const totalIncomplete = tasks.filter(t => t.status !== 'done').length;
 
+  // Custom function to compute task completion rates per employee
+  const computeEmployeePerformance = () => {
+    const performanceMap: Record<number, { name: string; role: string; total: number; done: number }> = {};
+    
+    // Seed performance metrics for available employees
+    users.forEach(u => {
+      if (u.role !== 'director' && u.role !== 'admin') {
+        performanceMap[u.id] = { name: u.name, role: u.role, total: 0, done: 0 };
+      }
+    });
+
+    tasks.forEach(task => {
+      const uId = task.assigned_to;
+      if (performanceMap[uId]) {
+        performanceMap[uId].total += 1;
+        if (task.status === 'done') {
+          performanceMap[uId].done += 1;
+        }
+      } else {
+        const assigneeUser = users.find(u => u.id === uId);
+        if (assigneeUser) {
+          performanceMap[uId] = {
+            name: assigneeUser.name,
+            role: assigneeUser.role,
+            total: 1,
+            done: task.status === 'done' ? 1 : 0
+          };
+        }
+      }
+    });
+
+    return Object.values(performanceMap)
+      .filter(p => p.total > 0)
+      .map(p => {
+        const rate = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0;
+        return {
+          name: p.name,
+          role: p.role,
+          displayName: `${p.name} (${p.role.replace('_', ' ').toUpperCase()})`,
+          'Bajarilgan': rate,
+          'Jami': p.total,
+          'Yopilgan': p.done,
+        };
+      });
+  };
+
+  const performanceData = computeEmployeePerformance();
+
+  // Custom brutalist tooltip matching theme rules
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white dark:bg-[#111111] border-2 border-emerald-500 dark:border-[#00FF00] p-3 text-[11px] font-mono shadow-md">
+          <p className="font-black text-slate-900 dark:text-white mb-1 uppercase text-xs">{label}</p>
+          <div className="space-y-1 mt-1 text-slate-700 dark:text-[#A0A0A0]">
+            <div>Lavozimi: <span className="font-bold text-slate-950 dark:text-white uppercase">{data.role.replace('_', ' ')}</span></div>
+            <div>Ko'rsatkich: <span className="font-extrabold text-emerald-600 dark:text-[#00FF00]">{payload[0].value}% bajarilgan</span></div>
+            <div className="text-[10px] text-slate-500 dark:text-gray-500">Jami topshiriqlar: {data.Jami} ta ({data.Yopilgan} ta yopilgan)</div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-8 font-sans">
       
@@ -205,6 +272,76 @@ export default function TasksTab({ userId, userRole }: TasksTabProps) {
           </div>
         </div>
       )}
+
+      {/* Task Performance Oversight Dashboard Widget */}
+      <div className="p-6 bg-white dark:bg-[#111111] border border-slate-200 dark:border-[#222222] rounded-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#222222] pb-4 mb-6">
+          <div>
+            <span className="text-[10px] font-mono uppercase bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-[#00FF00] border border-emerald-100 dark:border-emerald-800/20 px-2 py-1 tracking-wider inline-block mb-2 rounded-none">
+              BASHARAT VA IJRO MONITORI
+            </span>
+            <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
+              <BarChartIcon className="h-5 w-5 text-emerald-600 dark:text-[#00FF00]" /> Vazifalar Bajarilish Samaradorligi Kesimi
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-gray-400 font-sans mt-0.5">
+              Mas'ul xodimlar va lavozimlar kesimida vazifalar yakunlanishi koeffitsiyenti
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-4 text-[10px] font-mono">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-black border border-slate-200 dark:border-[#222] text-xs">
+              <span className="w-2.5 h-2.5 bg-[#ef4444] inline-block"></span>
+              <span className="text-slate-600 dark:text-gray-400 uppercase font-bold">Quyi (&lt;50%)</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-black border border-slate-200 dark:border-[#222] text-xs">
+              <span className="w-2.5 h-2.5 bg-[#f59e0b] inline-block"></span>
+              <span className="text-slate-600 dark:text-gray-400 uppercase font-bold">O'rta (50% - 79%)</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-black border border-slate-200 dark:border-[#222] text-xs">
+              <span className="w-2.5 h-2.5 bg-[#10b981] inline-block"></span>
+              <span className="text-slate-600 dark:text-gray-400 uppercase font-bold">A'lo (≥80%)</span>
+            </div>
+          </div>
+        </div>
+
+        {performanceData.length === 0 ? (
+          <div className="py-12 text-center text-slate-400 dark:text-gray-500 font-mono text-xs uppercase tracking-widest">
+            Vazifalar tarixi yetarli emas. Baza diagrammasini ko'rsatish uchun kamida bitta vazifa bo'lishi lozim.
+          </div>
+        ) : (
+          <div className="w-full h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={performanceData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={document.documentElement.classList.contains('dark') ? '#222222' : '#cbd5e1'} vertical={false} />
+                <XAxis 
+                  dataKey="displayName" 
+                  tick={{ fill: document.documentElement.classList.contains('dark') ? '#A0A0A0' : '#475569', fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold' }}
+                  axisLine={{ stroke: document.documentElement.classList.contains('dark') ? '#222222' : '#cbd5e1' }}
+                />
+                <YAxis 
+                  domain={[0, 100]} 
+                  tick={{ fill: document.documentElement.classList.contains('dark') ? '#A0A0A0' : '#475569', fontSize: 10, fontFamily: 'monospace' }}
+                  axisLine={{ stroke: document.documentElement.classList.contains('dark') ? '#222222' : '#cbd5e1' }}
+                  unit="%"
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(16, 185, 129, 0.05)' }} />
+                <Bar dataKey="Bajarilgan" radius={[4, 4, 0, 0]} barSize={40}>
+                  {
+                    performanceData.map((entry, index) => {
+                      let color = '#ef4444'; // Red for low
+                      if (entry.Bajarilgan >= 80) color = '#10b981'; // Emerald for high
+                      else if (entry.Bajarilgan >= 50) color = '#f59e0b'; // Amber for mid
+                      return <Cell key={`cell-${index}`} fill={color} />;
+                    })
+                  }
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
 
       {/* Grid: 12 Columns brutalist layout design */}
       <div className="grid grid-cols-12 gap-8">
