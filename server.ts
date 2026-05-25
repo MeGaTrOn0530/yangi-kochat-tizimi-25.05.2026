@@ -14,6 +14,21 @@ async function startServer() {
   // Body parser for handling JSON post payloads
   app.use(express.json({ limit: '10mb' }));
 
+  // ==================== DB STATUS API ====================
+  app.get('/api/db-status', (req, res) => {
+    res.json({
+      mode: (db as any).dbMode,
+      connected: (db as any).mysqlConnected,
+      info: (db as any).mysqlInfo,
+      config: {
+        host: process.env.MYSQL_HOST || null,
+        user: process.env.MYSQL_USER || null,
+        database: process.env.MYSQL_DATABASE || null,
+        port: Number(process.env.MYSQL_PORT) || 3306
+      }
+    });
+  });
+
   // ==================== AUTH API ====================
   app.post('/api/auth/login', (req, res) => {
     const { email, password } = req.body;

@@ -150,8 +150,46 @@ class DatabaseManager {
   private state: DatabaseSchema = { ...initialDbState };
   private initialized = false;
 
+  public dbMode: 'mysql' | 'json' = 'json';
+  public mysqlConnected = false;
+  private mysqlConn: any = null;
+  public mysqlInfo = "MySQL ulanmagan: Standart local JSON fayl-muhiti ishlamoqda.";
+
   async init() {
     if (this.initialized) return;
+
+    const host = process.env.MYSQL_HOST;
+    const user = process.env.MYSQL_USER;
+    const database = process.env.MYSQL_DATABASE;
+
+    if (host && user && database) {
+      console.log(`[Database] Connecting to MySQL at ${host}:${process.env.MYSQL_PORT || 3306}...`);
+      try {
+        const mysql = await import('mysql2/promise');
+        this.mysqlConn = await mysql.createConnection({
+          host,
+          port: Number(process.env.MYSQL_PORT) || 3306,
+          user,
+          password: process.env.MYSQL_PASSWORD || '',
+          database,
+          connectTimeout: 4000
+        });
+
+        this.dbMode = 'mysql';
+        this.mysqlConnected = true;
+        this.mysqlInfo = `MySQL-ga muvaffaqiyatli ulandi! Host: ${host}, Database: ${database}`;
+        console.log(`[Database] SUCCESS: Connected to MySQL database "${database}" on ${host}.`);
+
+        await this.setupMySQLSchema();
+        this.initialized = true;
+        return;
+      } catch (err: any) {
+        console.error(`[Database] MySQL Connection FAILED! Falling back to JSON files. Error: ${err.message}`);
+        this.mysqlInfo = `XATO: MySQL-ga ulanishda xato yuz berdi (${err.message}). Hozircha Local JSON ishlamoqda.`;
+      }
+    } else {
+      console.log("[Database] MYSQL_HOST / MYSQL_USER / MYSQL_DATABASE environment variables not fully configured. Using JSON file store.");
+    }
 
     if (fs.existsSync(DB_FILE_PATH)) {
       try {
@@ -174,8 +212,240 @@ class DatabaseManager {
     this.initialized = true;
   }
 
+  private async setupMySQLSchema() {
+    if (!this.mysqlConn) return;
+
+    const queries = [
+      `CREATE TABLE IF NOT EXISTS users (
+        id INT PRIMARY KEY,
+        name VARCHAR(255),
+        email VARCHAR(255) UNIQUE,
+        role VARCHAR(50),
+        location_id INT NULL,
+        is_active BOOLEAN,
+        created_at VARCHAR(100)
+      )`,
+      `CREATE TABLE IF NOT EXISTS locations (
+        id INT PRIMARY KEY,
+        name VARCHAR(255),
+        type VARCHAR(50),
+        capacity INT,
+        is_active BOOLEAN,
+        created_at VARCHAR(100)
+      )`,
+      `CREATE TABLE IF NOT EXISTS plant_types (
+        id INT PRIMARY KEY,
+        name VARCHAR(255),
+        description TEXT,
+        created_by INT,
+        created_at VARCHAR(100)
+      )`,
+      `CREATE TABLE IF NOT EXISTS varieties (
+        id INT PRIMARY KEY,
+        plant_type_id INT,
+        name VARCHAR(255),
+        description TEXT,
+        created_by INT,
+        created_at VARCHAR(100)
+      )`,
+      `CREATE TABLE IF NOT EXISTS graft_types (
+        id INT PRIMARY KEY,
+        name VARCHAR(255),
+        description TEXT,
+        created_at VARCHAR(100)
+      )`,
+      `CREATE TABLE IF NOT EXISTS batches (
+        id INT PRIMARY KEY,
+        batch_code VARCHAR(100),
+        qr_code LONGTEXT,
+        plant_type_id INT,
+        variety_id INT,
+        graft_type_id INT NULL,
+        location_id INT,
+        total_count INT,
+        active_count INT,
+        defect_count INT,
+        status VARCHAR(50),
+        notes TEXT,
+        created_by INT,
+        created_at VARCHAR(100)
+      )`,
+      `CREATE TABLE IF NOT EXISTS plants (
+        id INT PRIMARY KEY,
+        batch_id INT,
+        plant_code VARCHAR(100),
+        qr_code LONGTEXT,
+        stage VARCHAR(50),
+        location_id INT,
+        is_defect BOOLEAN,
+        sold_at VARCHAR(100) NULL,
+        created_at VARCHAR(100)
+      )`,
+      `CREATE TABLE IF NOT EXISTS stage_history (
+        id INT PRIMARY KEY,
+        plant_id INT NULL,
+        batch_id INT NULL,
+        from_stage VARCHAR(50) NULL,
+        to_stage VARCHAR(50),
+        changed_by INT,
+        approved_by INT NULL,
+        notes TEXT,
+        defect_image TEXT NULL,
+        is_defect BOOLEAN,
+        status VARCHAR(50),
+        changed_at VARCHAR(100)
+      )`,
+      `CREATE TABLE IF NOT EXISTS transfers (
+        id INT PRIMARY KEY,
+        from_location INT,
+        to_location INT,
+        requested_by INT,
+        approved_by INT NULL,
+        sent_by INT NULL,
+        received_by INT NULL,
+        plant_type_id INT,
+        variety_id INT,
+        stage VARCHAR(50),
+        quantity INT,
+        status VARCHAR(50),
+        notes TEXT,
+        created_at VARCHAR(100),
+        completed_at VARCHAR(100) NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS sales (
+        id INT PRIMARY KEY,
+        batch_id INT NULL,
+        location_id INT,
+        sold_by INT,
+        confirmed_by INT NULL,
+        customer_name VARCHAR(255),
+        customer_phone VARCHAR(50),
+        customer_address TEXT,
+        plant_type_id INT,
+        variety_id INT,
+        quantity INT,
+        unit_price INT,
+        total_price INT,
+        payment_method VARCHAR(50),
+        status VARCHAR(50),
+        notes TEXT,
+        sold_at VARCHAR(100),
+        confirmed_at VARCHAR(100) NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS tasks (
+        id INT PRIMARY KEY,
+        assigned_to INT,
+        assigned_by INT,
+        title VARCHAR(255),
+        description TEXT,
+        deadline VARCHAR(100),
+        status VARCHAR(50),
+        created_at VARCHAR(100)
+      )`
+    ];
+
+    try {
+      for (const q of queries) {
+        await this.mysqlConn.query(q);
+      }
+
+      const [userRows]: any = await this.mysqlConn.query("SELECT COUNT(*) as cnt FROM users");
+      const count = userRows[0]?.cnt || 0;
+
+      if (count === 0) {
+        console.log("[Database] MySQL tables are empty. Seeding initial data from JSON into MySQL...");
+        await this.seedInitialSeedlings();
+        await this.saveStateToMySQL();
+      } else {
+        console.log("[Database] MySQL tables are populated. Synchronizing MySQL records into server memory state...");
+        await this.loadStateFromMySQL();
+      }
+    } catch (err) {
+      console.error("[Database] Failed to setup MySQL Schema:", err);
+    }
+  }
+
+  private async loadStateFromMySQL() {
+    if (!this.mysqlConn) return;
+
+    try {
+      const tables = [
+        { name: 'users', key: 'users' },
+        { name: 'locations', key: 'locations' },
+        { name: 'plant_types', key: 'plantTypes' },
+        { name: 'varieties', key: 'varieties' },
+        { name: 'graft_types', key: 'graftTypes' },
+        { name: 'batches', key: 'batches' },
+        { name: 'plants', key: 'plants' },
+        { name: 'stage_history', key: 'stageHistory' },
+        { name: 'transfers', key: 'transfers' },
+        { name: 'sales', key: 'sales' },
+        { name: 'tasks', key: 'tasks' }
+      ];
+
+      for (const t of tables) {
+        const [rows]: any = await this.mysqlConn.query(`SELECT * FROM ${t.name}`);
+        const sanitizedRows = rows.map((r: any) => {
+          const mapped = { ...r };
+          if ('is_active' in mapped) mapped.is_active = Boolean(mapped.is_active);
+          if ('is_defect' in mapped) mapped.is_defect = Boolean(mapped.is_defect);
+          return mapped;
+        });
+        (this.state as any)[t.key] = sanitizedRows;
+      }
+      console.log(`[Database] Loaded ${this.state.plants.length} seedlings from MySQL successfully.`);
+    } catch (err) {
+      console.error("[Database] Error loading tables from MySQL:", err);
+    }
+  }
+
+  private async saveStateToMySQL() {
+    if (!this.mysqlConn) return;
+
+    try {
+      const tables = [
+        { name: 'users', list: this.state.users, cols: ['id', 'name', 'email', 'role', 'location_id', 'is_active', 'created_at'] },
+        { name: 'locations', list: this.state.locations, cols: ['id', 'name', 'type', 'capacity', 'is_active', 'created_at'] },
+        { name: 'plant_types', list: this.state.plantTypes, cols: ['id', 'name', 'description', 'created_by', 'created_at'] },
+        { name: 'varieties', list: this.state.varieties, cols: ['id', 'plant_type_id', 'name', 'description', 'created_by', 'created_at'] },
+        { name: 'graft_types', list: this.state.graftTypes, cols: ['id', 'name', 'description', 'created_at'] },
+        { name: 'batches', list: this.state.batches, cols: ['id', 'batch_code', 'qr_code', 'plant_type_id', 'variety_id', 'graft_type_id', 'location_id', 'total_count', 'active_count', 'defect_count', 'status', 'notes', 'created_by', 'created_at'] },
+        { name: 'plants', list: this.state.plants, cols: ['id', 'batch_id', 'plant_code', 'qr_code', 'stage', 'location_id', 'is_defect', 'sold_at', 'created_at'] },
+        { name: 'stage_history', list: this.state.stageHistory, cols: ['id', 'plant_id', 'batch_id', 'from_stage', 'to_stage', 'changed_by', 'approved_by', 'notes', 'defect_image', 'is_defect', 'status', 'changed_at'] },
+        { name: 'transfers', list: this.state.transfers, cols: ['id', 'from_location', 'to_location', 'requested_by', 'approved_by', 'sent_by', 'received_by', 'plant_type_id', 'variety_id', 'stage', 'quantity', 'status', 'notes', 'created_at', 'completed_at'] },
+        { name: 'sales', list: this.state.sales, cols: ['id', 'batch_id', 'location_id', 'sold_by', 'confirmed_by', 'customer_name', 'customer_phone', 'customer_address', 'plant_type_id', 'variety_id', 'quantity', 'unit_price', 'total_price', 'payment_method', 'status', 'notes', 'sold_at', 'confirmed_at'] },
+        { name: 'tasks', list: this.state.tasks, cols: ['id', 'assigned_to', 'assigned_by', 'title', 'description', 'deadline', 'status', 'created_at'] }
+      ];
+
+      for (const t of tables) {
+        await this.mysqlConn.query(`DELETE FROM ${t.name}`);
+
+        if (t.list.length === 0) continue;
+
+        const keys = t.cols.join(', ');
+        const values = t.list.map((item: any) => t.cols.map(c => {
+          const val = item[c];
+          if (typeof val === 'boolean') return val ? 1 : 0;
+          return val === undefined ? null : val;
+        }));
+
+        const q = `INSERT INTO ${t.name} (${keys}) VALUES ?`;
+        await this.mysqlConn.query(q, [values]);
+      }
+      console.log("[Database] MySQL write/sync complete.");
+    } catch (err) {
+      console.error("[Database] Error writing tables to MySQL:", err);
+    }
+  }
+
   private save() {
     fs.writeFileSync(DB_FILE_PATH, JSON.stringify(this.state, null, 2), 'utf-8');
+
+    if (this.dbMode === 'mysql') {
+      this.saveStateToMySQL().catch(err => {
+        console.error("Delayed MySQL background persist failed:", err);
+      });
+    }
   }
 
   private async seedInitialSeedlings() {

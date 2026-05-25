@@ -6,218 +6,246 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-/* Base Styles & Global Resets targeting the Bold Typography (Terminal/Brutalist) vibe */
+/* ==================== DEFAULT LIGHT THEME (KUNDUZGI) ==================== */
 html, body {
-  background-color: #0A0A0A !important;
-  color: #E0E0E0 !important;
+  background-color: #f8fafc !important; /* Soft light slate gray */
+  color: #0f172a !important;            /* Slate 900 for high-contrast */
   font-family: var(--font-sans);
   margin: 0;
   height: 100%;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Ensure container elements are completely dark with proper contrast */
-#root, .min-h-screen, .bg-slate-50, .bg-slate-50\/50, .bg-slate-50\/20, .bg-gray-50, .bg-gray-50\/50, .bg-slate-100 {
-  background-color: #0A0A0A !important;
-  color: #E0E0E0 !important;
+/* Base Light background configurations */
+#root, .min-h-screen {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
 }
 
-/* Transform all panels and standard white cards into custom dark elements */
-.bg-white, .bg-slate-50, .bg-card, .bg-popover {
-  background-color: #111111 !important;
-  color: #E0E0E0 !important;
-}
-
-/* Change sidebar to `#0A0A0A` with clean `#333` right border */
+/* Sidebar Light styles */
 aside {
-  background-color: #0A0A0A !important;
-  border-right: 1px solid #333333 !important;
+  background-color: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
 }
 
-/* Convert all borders to sharp dark tones mapping to the #222 and #333 design criteria */
-.border, .border-r, .border-t, .border-b, .border-l,
-.border-gray-105, .border-gray-100, .border-gray-150, .border-gray-200, .border-gray-250, .border-slate-100, .border-slate-200 {
-  border-color: #222222 !important;
+/* Card Light styles */
+.bg-white, .bg-card, .bg-popover {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
 }
 
-/* Hover over general cards transitions to green accent */
-.bg-white:hover {
-  border-color: #00FF00 !important;
-}
-
-.hover\:border-gray-150:hover, .hover\:border-gray-200:hover {
-  border-color: #00FF00 !important;
-}
-
-/* Sharp focus colors for Inputs, SELECT and TEXTAREA to match bold theme */
+/* Light Mode Input controls */
 input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea {
-  background-color: #0A0A0A !important;
-  border: 1px solid #333333 !important;
-  color: #FFFFFF !important;
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
   border-radius: 4px !important;
   font-family: var(--font-sans);
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: #00FF00 !important;
-  box-shadow: 0 0 0 1px #00FF00 !important;
+  border-color: #10b981 !important; /* Elegant Emerald */
+  box-shadow: 0 0 0 1px #10b981 !important;
   outline: none !important;
 }
 
-/* Force high-visibility uppercase typography for head sizes */
+/* Light mode heading colors */
 h1, h2, h3, h4, h5, h6, .card-title {
   text-transform: uppercase !important;
   font-weight: 900 !important;
   letter-spacing: -0.04em !important;
-  color: #FFFFFF !important;
+  color: #0f172a !important;
 }
 
-/* Huge header fonts */
-h1 {
-  font-size: 3rem !important; /* Bold dramatic */
+/* Light mode primary text weights and grays */
+.text-white {
+  color: #0f172a !important;
 }
-
-h2 {
-  font-size: 2rem !important;
-}
-
-h3 {
-  font-size: 1.25rem !important;
-}
-
-/* Text gray and descriptions color settings for high contrast reading */
 .text-gray-950, .text-gray-900, .text-gray-800, .text-gray-750 {
-  color: #FFFFFF !important;
+  color: #0f172a !important;
 }
-
 .text-gray-600, .text-gray-500, .text-gray-700 {
-  color: #A0A0A0 !important;
+  color: #475569 !important; /* Darker grey readibility under white background */
 }
-
 .text-gray-400, .text-gray-450 {
-  color: #666666 !important;
+  color: #64748b !important;
 }
-
 .text-gray-300 {
-  color: #B0B0B0 !important;
+  color: #475569 !important;
 }
 
-/* Secondary meta texts */
-.font-mono {
-  font-family: var(--font-mono) !important;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+/* Light mode headers */
+thead tr, .bg-gray-50\/50, .bg-slate-50\/20, .bg-slate-50\/50 {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
 }
 
-/* Active primary buttons and highlights using neon-green */
-.bg-emerald-600, .bg-emerald-700 {
-  background-color: #E0E0E0 !important;
-  color: #0A0A0A !important;
-  border: 1px solid #E0E0E0 !important;
+/* Primary buttons in Light Mode */
+.bg-emerald-600, .bg-emerald-700, .btn-primary {
+  background-color: #10b981 !important; /* Emerald primary green */
+  color: #ffffff !important;
+  border: 1px solid #10b981 !important;
   font-weight: 900 !important;
   text-transform: uppercase !important;
   letter-spacing: -0.02em !important;
 }
 
-.bg-emerald-600:hover, .bg-emerald-700:hover {
+.bg-emerald-600:hover, .bg-emerald-700:hover, .btn-primary:hover {
+  background-color: #059669 !important;
+  border-color: #059669 !important;
+  color: #ffffff !important;
+}
+
+/* Light mode mono indicators */
+.font-mono {
+  font-family: var(--font-mono) !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Scrollbars for Light mode */
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+
+
+/* ==================== DARK THEME OVERRIDES (TUNGI REJIM) ==================== */
+html.dark, body.dark, html.dark body {
+  background-color: #0A0A0A !important;
+  color: #E0E0E0 !important;
+}
+
+html.dark #root, html.dark .min-h-screen {
+  background-color: #0A0A0A !important;
+  color: #E0E0E0 !important;
+}
+
+/* Dark mode Sidebar */
+html.dark aside {
+  background-color: #0A0A0A !important;
+  border-right: 1px solid #333333 !important;
+}
+
+/* Dark mode Panels */
+html.dark .bg-white, html.dark .bg-card, html.dark .bg-popover, html.dark .bg-slate-50, html.dark .bg-slate-50\/50, html.dark .bg-slate-50\/20, html.dark .bg-gray-50, html.dark .bg-gray-50\/50 {
+  background-color: #111111 !important;
+  color: #E0E0E0 !important;
+}
+
+/* Dark mode borders mapping */
+html.dark .border, html.dark .border-r, html.dark .border-t, html.dark .border-b, html.dark .border-l,
+html.dark .border-gray-105, html.dark .border-gray-100, html.dark .border-gray-150, html.dark .border-gray-200, html.dark .border-gray-250, html.dark .border-slate-100, html.dark .border-slate-200 {
+  border-color: #222222 !important;
+}
+
+html.dark .bg-white:hover, html.dark .hover\:border-gray-150:hover, html.dark .hover\:border-gray-200:hover {
+  border-color: #00FF00 !important;
+}
+
+/* Dark mode inputs override */
+html.dark input[type="text"], html.dark input[type="password"], html.dark input[type="email"], html.dark input[type="number"], html.dark input[type="date"], html.dark select, html.dark textarea {
+  background-color: #0A0A0A !important;
+  border: 1px solid #333333 !important;
+  color: #FFFFFF !important;
+}
+
+html.dark input:focus, html.dark select:focus, html.dark textarea:focus {
+  border-color: #00FF00 !important;
+  box-shadow: 0 0 0 1px #00FF00 !important;
+}
+
+/* Headings in Dark mode */
+html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6, html.dark .card-title {
+  color: #FFFFFF !important;
+}
+
+/* Text elements dynamic colors in Dark Mode */
+html.dark .text-white {
+  color: #FFFFFF !important;
+}
+html.dark .text-gray-950, html.dark .text-gray-900, html.dark .text-gray-800, html.dark .text-gray-750 {
+  color: #FFFFFF !important;
+}
+html.dark .text-gray-650, html.dark .text-gray-700 {
+  color: #A0A0A0 !important;
+}
+html.dark .text-gray-500, html.dark .text-gray-600 {
+  color: #A0A0A0 !important;
+}
+html.dark .text-gray-400, html.dark .text-gray-450 {
+  color: #666666 !important;
+}
+html.dark .text-gray-300 {
+  color: #B0B0B0 !important;
+}
+
+/* Table head color */
+html.dark thead tr, html.dark .bg-gray-50\/50, html.dark .bg-slate-50\/20 {
+  background-color: #161616 !important;
+  color: #888888 !important;
+}
+
+/* Primary buttons in Dark Mode (Green Neon Matrix style!) */
+html.dark .bg-emerald-600, html.dark .bg-emerald-700, html.dark .btn-primary {
+  background-color: #E0E0E0 !important;
+  color: #0A0A0A !important;
+  border: 1px solid #E0E0E0 !important;
+}
+
+html.dark .bg-emerald-600:hover, html.dark .bg-emerald-700:hover, html.dark .btn-primary:hover {
   background-color: #00FF00 !important;
   border-color: #00FF00 !important;
   color: #0A0A0A !important;
 }
 
-/* Subtle accent states and alerts */
-.bg-emerald-50, .bg-emerald-100 {
+html.dark .bg-emerald-600.text-white {
+  background-color: #00FF00 !important;
+  color: #0A0A0A !important;
+}
+
+/* Scrolling in Dark mode */
+html.dark ::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #333333;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #00FF00;
+}
+
+/* Accents, levels and statuses (Emerald background mapping) */
+html.dark .bg-emerald-50, html.dark .bg-emerald-100 {
   background-color: rgba(0, 255, 0, 0.1) !important;
   border-color: rgba(0, 255, 0, 0.3) !important;
   color: #00FF00 !important;
 }
-
-.text-emerald-600, .text-emerald-700, .text-emerald-800, .text-emerald-850 {
+html.dark .text-emerald-600, html.dark .text-emerald-700, html.dark .text-emerald-800, html.dark .text-emerald-850 {
   color: #00FF00 !important;
 }
-
-/* Interactive navigation state */
-.bg-emerald-600.text-white {
-  background-color: #00FF00 !important;
-  color: #0A0A0A !important;
-  font-weight: 900 !important;
-}
-
-/* Dialog and Modals background override */
-.fixed.inset-0.bg-black\/40 {
-  background-color: rgba(0, 0, 0, 0.8) !important;
-}
-
-/* Custom indicator dots */
-.bg-emerald-500 {
+html.dark .bg-emerald-500 {
   background-color: #00FF00 !important;
 }
 
-/* Table header color settings for high-contrast */
-thead tr, .bg-gray-50\/50, .bg-slate-50\/20 {
-  background-color: #161616 !important;
-  color: #888888 !important;
-}
 
-/* Custom scrollbars for full dark experience */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #0A0A0A;
-}
-::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #00FF00;
-}
-
-/* Custom badge/accent settings */
-.bg-indigo-50, .bg-indigo-100 {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border-color: #222222 !important;
-  color: #E0E0E0 !important;
-}
-.text-indigo-650, .text-indigo-700 {
-  color: #A0A0A0 !important;
-}
-
-.bg-amber-50, .bg-amber-100 {
-  background-color: rgba(245, 158, 11, 0.1) !important;
-  border-color: rgba(245, 158, 11, 0.2) !important;
-  color: #F59E0B !important;
-}
-.text-amber-600, .text-amber-700 {
-  color: #F59E0B !important;
-}
-
-.bg-red-50, .bg-red-100 {
-  background-color: rgba(239, 68, 68, 0.1) !important;
-  border-color: rgba(239, 68, 68, 0.2) !important;
-  color: #EF4444 !important;
-}
-.text-red-600, .text-red-750, .text-red-700 {
-  color: #EF4444 !important;
-}
-
-/* Remove circular borders and use brutalist square boundaries */
+/* General square brutalist corners fallback */
 button, select, input, textarea, div {
   border-radius: 2px !important;
 }
-/* Except full circles like avatars and status indicators */
 .rounded-full {
   border-radius: 50% !important;
 }
-
-/* Accent for buttons and hover state */
-.btn-primary {
-  background-color: #E0E0E0 !important;
-  color: #0A0A0A !important;
-  font-weight: 900 !important;
-  text-transform: uppercase !important;
+.rounded-2xl, .rounded-xl {
+  border-radius: 4px !important; /* Elegant modern curves */
 }
-.btn-primary:hover {
-  background-color: #00FF00 !important;
+p {
+  font-family: var(--font-sans);
 }

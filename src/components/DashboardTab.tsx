@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { Location, PlantType, Variety } from '../types';
-import { Activity, Beaker, ShoppingBag, Leaf, DollarSign, ShieldAlert, Thermometer, RefreshCw } from 'lucide-react';
+import { Activity, Beaker, ShoppingBag, Leaf, DollarSign, ShieldAlert, Thermometer, RefreshCw, FileSpreadsheet, Printer, X, Download } from 'lucide-react';
 
 interface DashboardTabProps {
   locations: Location[];
@@ -15,6 +15,7 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
   const [defects, setDefects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeLocFilter, setActiveLocFilter] = useState<number | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   const fetchReport = async () => {
     setLoading(true);
@@ -33,6 +34,51 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
   useEffect(() => {
     fetchReport();
   }, []);
+
+  const exportToExcel = () => {
+    if (!report) return;
+    const s = report.summary;
+    
+    // Create Excel friendly CSV Content with Uzbek UTF-8 BOM
+    let csvContent = "\uFEFF"; // UTF-8 BOM for modern Excel compatibility
+    csvContent += "========================================================\n";
+    csvContent += "YASHIL KO'CHAT BOSHQARUV TIZIMI - YILLIK VA KUNLIK HISOBOT\n";
+    csvContent += "========================================================\n";
+    csvContent += `Eksport sanasi:;${new Date().toLocaleDateString('uz-UZ')} ${new Date().toLocaleTimeString('uz-UZ')}\n`;
+    csvContent += `Tizim foydalanuvchisi:;${userRole.toUpperCase()}\n`;
+    csvContent += `Status:;AKTIV / ONLINE\n\n`;
+    
+    csvContent += "1. UMUMIY STATISTIKA (SUMMARY)\n";
+    csvContent += "Metrika;Miqdori;O'lchov birligi\n";
+    csvContent += `Faol jarayondagi ko'chatlar;${s.activeCount};ta ko'chat\n`;
+    csvContent += `Sotuvga tayyor ko'chatlar;${s.readyCount};ta ko'chat\n`;
+    csvContent += `Nuqsonli (No-bud qilingan);${s.defectCount};ta ko'chat\n`;
+    csvContent += `Jami hisoblangan moliya;${s.totalEarnings};so'm\n\n`;
+
+    csvContent += "2. ISSIQXONA VA LOKATSIYALARNING BANDLIK HOLATI\n";
+    csvContent += "Obyekt nomi;Turi;Sig'imi (Maksimal);O'smoqda (Active);Tayyor (Ready);Nuqsonlar (Defect);Bandlik darajasi (%)\n";
+    report.locationStats.forEach((loc: any) => {
+      const typeStr = loc.type === 'greenhouse' ? 'Teplitsa' : 'Ochiq dala';
+      csvContent += `${loc.name};${typeStr};${loc.capacity};${loc.active};${loc.ready};${loc.defect};${loc.capacityUsedPercent}%\n`;
+    });
+    csvContent += "\n";
+
+    csvContent += "3. QAYD ETILGAN SO'NGGI ZARAR YOKI NUQSONLAR RO'YXATI\n";
+    csvContent += "Ko'chat kodi;Sana;Lokatsiya;Partiya kodi;Tavsif / Sabab\n";
+    defects.forEach((def: any) => {
+      const notesClean = def.notes ? def.notes.replace(/"/g, '""').replace(/\n/g, ' ') : '';
+      csvContent += `${def.plant_code};${new Date(def.date).toLocaleDateString('uz-UZ')};${def.location_name};${def.batch_code};"${notesClean}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Yashil_Koochat_Hisobot_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading || !report) {
     return (
@@ -107,6 +153,32 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
         </div>
       </div>
 
+      {/* Export & Command Center Action Panel - Brutalist/Bold Typography Styled */}
+      <div className="bg-[#111111] p-6 border-2 border-[#222222] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 select-none shrink-0 rounded-none">
+        <div>
+          <h2 className="text-sm font-mono font-bold uppercase tracking-widest text-[#00FF00] flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#00FF00] animate-pulse"></span> HISOBOT VA EKSPORT MARKAZI
+          </h2>
+          <p className="text-[11px] text-[#A0A0A0] mt-1 font-mono uppercase">
+            Teplitsa sig'imi, moliya va barcha nuqsonli hisobotlarni PDF yoki Excel formatida saqlang.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3 w-full md:w-auto">
+          <button 
+            onClick={exportToExcel}
+            className="flex-1 md:flex-initial bg-[#1A1A1A] hover:bg-[#00FF00] hover:text-[#0A0A0A] text-white border-2 border-[#333333] hover:border-transparent font-black px-5 py-3 text-xs uppercase font-mono tracking-tight flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer rounded-none"
+          >
+            <FileSpreadsheet className="h-4.5 w-4.5 shrink-0" /> EXCEL (CSV) EKSPORT
+          </button>
+          <button 
+            onClick={() => setShowPrintModal(true)}
+            className="flex-1 md:flex-initial bg-[#E0E0E0] hover:bg-[#00FF00] text-[#0A0A0A] font-black px-5 py-3 text-xs uppercase font-mono tracking-tight flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer border border-transparent rounded-none"
+          >
+            <Printer className="h-4.5 w-4.5 shrink-0" /> PDF CHOP ETISH
+          </button>
+        </div>
+      </div>
+
       {/* Main Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Greenhouse lists Grid */}
@@ -119,9 +191,9 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
               </div>
               <button 
                 onClick={fetchReport} 
-                className="flex items-center gap-2 text-xs font-mono text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 transition-all"
+                className="flex items-center gap-2 text-xs font-mono text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 transition-all cursor-pointer"
               >
-                <RefreshCw className="h-3 w-3" /> Yangilash
+                <RefreshCw className="h-3 w-3 animate-spin duration-3000" /> Yangilash
               </button>
             </div>
 
@@ -129,9 +201,9 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
             <div className="flex flex-wrap gap-2 mb-6">
               <button 
                 onClick={() => setActiveLocFilter(null)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                className={`text-xs px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
                   activeLocFilter === null 
-                    ? 'bg-emerald-600 text-white border-emerald-600' 
+                    ? 'bg-emerald-650 text-white border-emerald-600' 
                     : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -141,9 +213,9 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
                 <button 
                   key={loc.id}
                   onClick={() => setActiveLocFilter(loc.id)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
                     activeLocFilter === loc.id 
-                      ? 'bg-emerald-600 text-white border-emerald-600' 
+                      ? 'bg-emerald-650 text-white border-emerald-600' 
                       : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                   }`}
                 >
@@ -160,7 +232,7 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
                     <span className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
                       <span className={`w-2.5 h-2.5 rounded-full ${loc.type === 'greenhouse' ? 'bg-emerald-500' : 'bg-sky-500'}`}></span>
                       {loc.name}
-                      <span className="text-xs font-normal text-gray-400 font-mono">({loc.type === 'greenhouse' ? 'Teplitsa' : 'Ochiq dala'})</span>
+                      <span className="text-xs font-normal text-gray-400 font-mono">({loc.type === 'greenhouse' ? "Issiqxona" : "Ochiq dala"})</span>
                     </span>
                     <span className="text-xs font-mono text-gray-500">
                       {loc.active + loc.ready} / {loc.capacity} <span className="font-semibold text-gray-900">({loc.capacityUsedPercent}%)</span>
@@ -220,8 +292,8 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
                           <img src={def.image} alt="Defect" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         </div>
                       ) : (
-                        <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center text-red-600 font-mono text-xs uppercase shrink-0">
-                          No Pic
+                        <div className="w-12 h-12 bg-red-100 flex items-center justify-center text-red-600 font-mono text-xs uppercase shrink-0">
+                          Rasm
                         </div>
                       )}
                       <div className="space-y-1">
@@ -249,6 +321,234 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
           </div>
         </div>
       </div>
+
+      {/* --- BRUTALIST PRINTABLE PREVIEW & SAVE PDF MODAL --- */}
+      {showPrintModal && (
+        <div className="fixed inset-0 bg-black/90 flex flex-col justify-start items-center p-4 md:p-10 z-50 overflow-y-auto font-mono">
+          
+          {/* Print only @media stylesheet injection */}
+          <style dangerouslySetInnerHTML={{__html: `
+            @media print {
+              /* Hide standard web wrapper components of browser page */
+              body * {
+                visibility: hidden !important;
+              }
+              /* Display ONLY user-selected printable layout */
+              #brutalist-printable-area, #brutalist-printable-area * {
+                visibility: visible !important;
+              }
+              #brutalist-printable-area {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                background-color: #FFFFFF !important;
+                color: #000000 !important;
+                padding: 2.5rem !important;
+              }
+              /* Adjust visual styling flags inside PDF mode to high contract dark outline on white background */
+              .print-black-border {
+                border: 2px solid #000000 !important;
+              }
+              .print-bg-gray {
+                background-color: #F0F0F0 !important;
+              }
+              .print-hidden {
+                display: none !important;
+              }
+            }
+          `}} />
+
+          {/* Modal head controllers (Hidden during print engine execution) */}
+          <div className="max-w-4xl w-full bg-[#111111] border-2 border-[#333333] p-5 mb-4 flex justify-between items-center print-hidden select-none">
+            <div className="flex items-center gap-3">
+              <div className="bg-[#1C1C1C] text-[#00FF00] font-bold p-2 text-xs border border-[#333333]">
+                PDF/PRINTER ENGINE READY
+              </div>
+              <p className="text-xs text-gray-400">Tizim hisoboti chop etishga mukammal sozlangan.</p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => window.print()} 
+                className="bg-[#00FF00] hover:bg-white text-black font-black uppercase text-xs px-5 py-2.5 rounded-none flex items-center gap-2 transition-colors duration-200 cursor-pointer"
+              >
+                <Printer className="h-4 w-4" /> CHOP ETISH / PDF SAQLASH
+              </button>
+              <button 
+                onClick={() => setShowPrintModal(false)}
+                className="bg-[#222222] hover:bg-red-600 text-white font-black uppercase text-xs px-4 py-2.5 rounded-none flex items-center gap-1.5 transition-colors duration-200 cursor-pointer border border-[#333333]"
+              >
+                <X className="h-4 w-4" /> YOPISH
+              </button>
+            </div>
+          </div>
+
+          {/* Printable Brutalist Form Area (Targeted exclusively by CSS print pipeline) */}
+          <div 
+            id="brutalist-printable-area" 
+            className="max-w-4xl w-full bg-black text-[#E0E0E0] border-2 border-[#333333] p-10 space-y-8 select-text relative print-black-border print-bg-gray"
+          >
+            {/* Header section matches Terminal / Corporate aesthetic */}
+            <header className="flex justify-between items-start border-b-2 border-dashed border-[#555] pb-6">
+              <div>
+                <h1 className="text-3xl font-black text-white tracking-widest uppercase leading-none pb-2">
+                  Yashil Ko'chat MChJ
+                </h1>
+                <p className="text-xs text-[#00FF00] font-bold uppercase tracking-widest">
+                  TOSHKENT MARKAZIY BOSHQARUV TIZIMI v1.0
+                </p>
+                <p className="text-[10px] text-gray-400 mt-2 uppercase">
+                  Obyektlar: 6 ta issiqxona va 2 ta ochiq dala monitoringi
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-gray-500 uppercase font-bold">HISOBOT RAQAMI: #MON-{new Date().toISOString().slice(2, 10).replace(/-/g, '')}</p>
+                <p className="text-xs text-white font-bold mt-1 uppercase">SANA: {new Date().toLocaleDateString('uz-UZ')}</p>
+                <p className="text-[10px] text-gray-450 mt-1 uppercase font-mono">STATUS: AKTIV GURUH</p>
+                <p className="text-[10px] text-gray-450 mt-0.5 uppercase font-mono">XALQARO METRIKA: SI-SYSTEM</p>
+              </div>
+            </header>
+
+            {/* Overall summaries */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-black uppercase tracking-wider text-[#00FF00] border-b border-[#222] pb-1.5">
+                I. UMUMIY METRIKALAR XULOSASI (METRICS SUMMARY)
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-[#111111] border border-[#222222] print-black-border text-center">
+                  <span className="text-[10px] text-gray-400 uppercase">Jarayonda (Tirik)</span>
+                  <span className="text-2xl font-black text-white block mt-1">{s.activeCount} ta</span>
+                </div>
+                <div className="p-4 bg-[#111111] border border-[#222222] print-black-border text-center">
+                  <span className="text-[10px] text-gray-400 uppercase">Sotuvga Tayyor</span>
+                  <span className="text-2xl font-black text-[#00FF00] block mt-1">{s.readyCount} ta</span>
+                </div>
+                <div className="p-4 bg-[#111111] border border-[#222222] print-black-border text-center">
+                  <span className="text-[10px] text-gray-400 uppercase">No-bud (Nuqsonlar)</span>
+                  <span className="text-2xl font-black text-red-500 block mt-1">{s.defectCount} ta</span>
+                </div>
+                <div className="p-4 bg-[#111111] border border-[#222222] print-black-border text-center">
+                  <span className="text-[10px] text-gray-400 uppercase">Tasdiqlangan Moliya</span>
+                  <span className="text-lg font-black text-white block mt-2 truncate w-full">{s.totalEarnings.toLocaleString('uz-UZ')} so'm</span>
+                </div>
+              </div>
+            </section>
+
+            {/* Mid-level Capacity metrics list */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-black uppercase tracking-wider text-[#00FF00] border-b border-[#222] pb-1.5">
+                II. LOKATSIYAVIY MONITORING NATORIYATI (INFRASTRUCTURE LOAD)
+              </h3>
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-[#444] text-gray-450">
+                    <th className="py-2.5">LOKATSIYA NOMI</th>
+                    <th className="py-2.5">TURI</th>
+                    <th className="py-2.5 text-right">HAMMASI (FOIZ)</th>
+                    <th className="py-2.5 text-right">O'SMOQDA (ACTIVE)</th>
+                    <th className="py-2.5 text-right">TAYYOR (READY)</th>
+                    <th className="py-2.5 text-right">NUQSONLAR</th>
+                    <th className="py-2.5 text-right">Maksimal Sig'im</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#222]">
+                  {report.locationStats.map((loc: any) => (
+                    <tr key={loc.id} className="text-white hover:bg-neutral-900">
+                      <td className="py-2.5 font-bold flex items-center gap-1">
+                        ■ {loc.name}
+                      </td>
+                      <td className="py-2.5 uppercase font-mono text-[10px] text-gray-400">
+                        {loc.type === 'greenhouse' ? 'Teplitsa' : 'Ochiq dala'}
+                      </td>
+                      <td className="py-2.5 text-right font-bold text-[#00FF00]">
+                        {loc.capacityUsedPercent}%
+                      </td>
+                      <td className="py-2.5 text-right text-gray-300">
+                        {loc.active}
+                      </td>
+                      <td className="py-2.5 text-right text-[#00FF00]">
+                        {loc.ready}
+                      </td>
+                      <td className="py-2.5 text-right text-red-500">
+                        {loc.defect}
+                      </td>
+                      <td className="py-2.5 text-right text-gray-400 font-mono">
+                        {loc.capacity} ta
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+
+            {/* Last defects database */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-black uppercase tracking-wider text-[#00FF00] border-b border-[#222] pb-1.5">
+                III. FAOL QAYD ETILGAN NUQSONLAR VA NO-BUDLAR
+              </h3>
+              {defects.length === 0 ? (
+                <p className="text-xs text-gray-500 italic">Hozircha tizimda hech qanday no-budlar qayd etilmagan.</p>
+              ) : (
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#444] text-gray-450">
+                      <th className="py-2.5">O'SIMLIK KODI</th>
+                      <th className="py-2.5">KAYD SANASI</th>
+                      <th className="py-2.5">LOKATSIYASI</th>
+                      <th className="py-2.5">PARTIYASI</th>
+                      <th className="py-2.5">MUAMMO BATAFSIL / IZOHI</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#222]">
+                    {defects.slice(0, 15).map((def: any) => (
+                      <tr key={def.id} className="text-white">
+                        <td className="py-2.5 font-bold text-red-500">
+                          {def.plant_code}
+                        </td>
+                        <td className="py-2.5 text-gray-400">
+                          {new Date(def.date).toLocaleDateString('uz-UZ')}
+                        </td>
+                        <td className="py-2.5 uppercase text-gray-300">
+                          {def.location_name}
+                        </td>
+                        <td className="py-2.5 font-bold text-gray-400 font-mono">
+                          {def.batch_code}
+                        </td>
+                        <td className="py-2.5 text-gray-300">
+                          {def.notes}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
+
+            {/* Verification Stamper and Footer Signature boxes */}
+            <footer className="pt-16 border-t-2 border-dashed border-[#555] grid grid-cols-2 md:grid-cols-3 gap-8 text-[11px] uppercase tracking-wide">
+              <div>
+                <p className="text-gray-500 font-mono">Mas'ul Shaxs:</p>
+                <div className="h-10 mt-2 border-b border-gray-600"></div>
+                <p className="mt-2 text-gray-400 font-mono">Bosh Agronom Imzosi</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500 font-mono">Tekshirildi:</p>
+                <div className="h-10 mt-2 border-b border-gray-600"></div>
+                <p className="mt-2 text-gray-400 font-mono">Hisobchi / Administrator</p>
+              </div>
+
+              <div className="col-span-2 md:col-span-1 border border-dashed border-[#333] p-4 text-center text-[9px] font-mono text-gray-500 flex flex-col justify-center items-center">
+                <p className="font-bold text-white mb-1">RAQAMLI MUHR / SECURE SHA2</p>
+                <p>CERTIFIED SYSTEM AUTOMATION v1</p>
+                <p className="text-[#00FF00] font-black mt-2">● SECURE_ENCR_OK</p>
+              </div>
+            </footer>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

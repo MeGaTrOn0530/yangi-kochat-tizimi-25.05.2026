@@ -1,7 +1,9 @@
 {
   "name": "Issiqxona Ko'chat Boshqaruv Tizimi",
   "description": "6 ta issiqxona va 2 ta ochiq dala uchun ko'chat yetishtirishni qog'ozsiz, to'liq raqamli boshqarish tizimi.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "camera"
+  ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]

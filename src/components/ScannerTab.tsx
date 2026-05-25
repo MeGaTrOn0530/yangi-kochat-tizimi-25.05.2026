@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Plant, Batch, PlantStage, Location, PlantType, Variety } from '../types';
 import { QrCode, Scan, Search, CheckCircle2, ShieldAlert, FileText, Camera, RefreshCw } from 'lucide-react';
+// @ts-ignore
+import QrScanner from 'react-qr-scanner';
 
 interface ScannerTabProps {
   locations: Location[];
@@ -16,6 +18,11 @@ export default function ScannerTab({ locations, plantTypes, varieties, userId, u
   const [activePlants, setActivePlants] = useState<Plant[]>([]);
   const [allBatches, setAllBatches] = useState<Batch[]>([]);
   const [loadingLists, setLoadingLists] = useState(true);
+
+  // Camera Reader integration states
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<'rear' | 'front'>('rear');
 
   // Scan Results
   const [scanResult, setScanResult] = useState<any>(null);
@@ -62,6 +69,23 @@ export default function ScannerTab({ locations, plantTypes, varieties, userId, u
   useEffect(() => {
     fetchLists();
   }, []);
+
+  const handleScan = (data: any) => {
+    if (data) {
+      // Some versions of react-qr-scanner return an object with a text prop, others return string
+      const scannedCode = (data && typeof data === 'object' && data.text) ? data.text : (typeof data === 'string' ? data : null);
+      if (scannedCode) {
+        setQrInput(scannedCode);
+        handleSearchQR(scannedCode);
+        setCameraActive(false); // turn off camera search upon matching code
+      }
+    }
+  };
+
+  const handleCameraError = (err: any) => {
+    console.error("Kamera xatoligi:", err);
+    setCameraError("Kameradan ruxsat olinmadi yoki u band bo'lishi mumkin. Sozlamalarni tekshiring.");
+  };
 
   const handleSearchQR = async (code: string) => {
     if (!code.trim()) return;
@@ -207,6 +231,73 @@ export default function ScannerTab({ locations, plantTypes, varieties, userId, u
                   {searching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 </button>
               </div>
+            </div>
+
+            {/* Live Camera Scanner Integration */}
+            <div className="mt-4 pt-4 border-t border-gray-150">
+              {cameraActive ? (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center bg-emerald-950/20 p-2.5 border border-[#333333] select-none">
+                    <span className="text-xs font-bold text-[#00FF00] font-mono flex items-center gap-1.5 animate-pulse">
+                      <span className="w-2 h-2 rounded-full bg-[#00FF00]"></span> KAMERA FAOL...
+                    </span>
+                    <div className="flex gap-2">
+                      <button 
+                        type="button"
+                        onClick={() => setFacingMode(facingMode === 'rear' ? 'front' : 'rear')}
+                        className="text-[9px] font-mono bg-neutral-900 text-white border border-[#333333] font-bold px-2 py-1 rounded-none cursor-pointer hover:bg-white hover:text-black transition-colors"
+                        title="Kamerani almashtirish (orqa/oldingi)"
+                      >
+                        KAMERA: {facingMode === 'rear' ? 'ORQA' : 'OLDIN'}
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setCameraActive(false);
+                          setCameraError(null);
+                        }}
+                        className="text-[9px] font-mono bg-red-950/40 text-red-500 border border-red-900/40 px-2 py-1 rounded-none font-bold cursor-pointer hover:bg-red-650 hover:text-white transition-colors"
+                      >
+                        YOPISH
+                      </button>
+                    </div>
+                  </div>
+
+                  {cameraError && (
+                    <div className="bg-red-950/20 p-2.5 border border-red-900/40 text-red-400 text-[10.5px] font-mono">
+                      Xato: {cameraError}
+                    </div>
+                  )}
+
+                  <div className="relative overflow-hidden border-2 border-[#00FF00] bg-black aspect-video flex items-center justify-center rounded-none">
+                    {/* Glowing scanning laser lines */}
+                    <div className="absolute inset-x-0 top-1/2 h-0.5 bg-[#00FF00] shadow-[0_0_10px_#00FF00] animate-bounce z-10 pointer-events-none"></div>
+                    <div className="absolute inset-2 border border-white/10 pointer-events-none z-10"></div>
+                    
+                    <QrScanner
+                      delay={300}
+                      onError={handleCameraError}
+                      onScan={handleScan}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      facingMode={facingMode}
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-500 font-mono uppercase text-center">
+                    Kamera oldiga QR kodni yaqinlashtiring
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCameraActive(true);
+                    setCameraError(null);
+                  }}
+                  className="w-full bg-[#111111] hover:bg-[#00FF00] text-white hover:text-black border-2 border-[#333333] hover:border-transparent transition-all uppercase tracking-tight duration-200 font-bold text-xs py-3 px-3 rounded-none flex items-center justify-center gap-2 cursor-pointer select-none"
+                >
+                  <Camera className="h-4 w-4" /> Mobil kamera orqali QR skanerlash
+                </button>
+              )}
             </div>
 
             {/* Simulated Active label selections */}

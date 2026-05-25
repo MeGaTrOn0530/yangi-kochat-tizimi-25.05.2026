@@ -36,7 +36,10 @@ import {
   ShoppingBag, 
   BookOpen, 
   ClipboardList, 
-  Activity 
+  Activity,
+  Sun,
+  Moon,
+  Database
 } from 'lucide-react';
 
 export default function App() {
@@ -45,6 +48,30 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Theme support & Database Status State
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+  });
+  const [dbStatus, setDbStatus] = useState<{ mode: string; connected: boolean; info: string; config: any } | null>(null);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const loadDbStatus = async () => {
+    try {
+      const status = await api.getDbStatus();
+      setDbStatus(status);
+    } catch (err) {
+      console.error("Failed to load db status:", err);
+    }
+  };
 
   // Global Lists
   const [locations, setLocations] = useState<Location[]>([]);
@@ -93,6 +120,7 @@ export default function App() {
 
   useEffect(() => {
     loadGlobalData();
+    loadDbStatus();
     // Check if session cached
     const stored = sessionStorage.getItem('seedling_user');
     if (stored) {
@@ -322,29 +350,76 @@ export default function App() {
   const isAcc = currentUser.role === 'accountant';
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex font-sans text-xs text-[#E0E0E0] selection:bg-emerald-950/40">
+    <div className={`min-h-screen flex font-sans text-xs transition-colors duration-200 selection:bg-emerald-950/40 ${
+      theme === 'dark' ? 'bg-[#0A0A0A] text-[#E0E0E0]' : 'bg-slate-50 text-slate-800'
+    }`}>
       {/* Visual Navigation Sidebar */}
-      <aside className="w-64 bg-[#0A0A0A] border-r border-[#222222] shrink-0 flex flex-col justify-between p-6">
+      <aside className={`w-64 shrink-0 flex flex-col justify-between p-6 border-r transition-all duration-200 ${
+        theme === 'dark' ? 'bg-[#0A0A0A] border-[#222222]' : 'bg-white border-slate-200'
+      }`}>
         <div className="space-y-8">
           {/* Brand header */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#111111] border border-[#333333] rounded-none flex items-center justify-center text-[#ffea00] hover:text-[#00FF00] transition-colors">
-              <Leaf className="h-5 w-5 text-[#00FF00]" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 border rounded-none flex items-center justify-center transition-colors ${
+                theme === 'dark' ? 'bg-[#111111] border-[#333333] text-[#00FF00]' : 'bg-emerald-50 border-emerald-100 text-[#10b981]'
+              }`}>
+                <Leaf className="h-5 w-5" />
+              </div>
+              <div>
+                <span className={`font-black font-sans tracking-tighter text-sm block leading-none uppercase ${
+                  theme === 'dark' ? 'text-white' : 'text-slate-900'
+                }`}>Yashil Ko'chat</span>
+                <span className={`text-[8px] font-mono tracking-widest block mt-1 ${
+                  theme === 'dark' ? 'text-[#888888]' : 'text-slate-500'
+                }`}>TERMINAL v1.0</span>
+              </div>
             </div>
-            <div>
-              <span className="font-black text-white font-sans tracking-tighter text-sm block leading-none uppercase">Yashil Ko'chat</span>
-              <span className="text-[8px] text-[#888888] font-mono tracking-widest block mt-1">TERMINAL v1.0</span>
-            </div>
+
+            {/* Day / Night Mode Switch */}
+            <button 
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className={`p-1.5 border rounded-none transition-all duration-200 hover:scale-105 cursor-pointer ${
+                theme === 'dark' 
+                  ? 'bg-[#111111] border-[#333333] text-yellow-400 hover:text-white' 
+                  : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-indigo-600'
+              }`}
+              title={theme === 'dark' ? "Kunduzgi rejimga o'tish" : "Tungi rejimga o'tish"}
+            >
+              {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+            </button>
           </div>
 
+          {/* Database server status banner */}
+          {dbStatus && (
+            <div className={`p-3 border text-[10px] leading-tight transition-colors duration-200 ${
+              dbStatus.connected 
+                ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' 
+                : 'bg-amber-950/10 border-amber-500/20 text-amber-600 dark:text-amber-500'
+            }`}>
+              <div className="flex items-center gap-2 font-bold uppercase tracking-tight text-[11px] mb-1">
+                <Database className="h-3.5 w-3.5" />
+                <span>Baza: {dbStatus.mode.toUpperCase()}</span>
+                <span className={`w-2 h-2 rounded-full inline-block animate-pulse ${dbStatus.connected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+              </div>
+              <p className="text-[10px] opacity-90 leading-tight">{dbStatus.info}</p>
+            </div>
+          )}
+
           {/* Profile user info stamp */}
-          <div className="p-4 bg-[#111111] rounded-none border border-[#222222] flex items-center gap-3 hover:border-[#00FF00] transition-colors duration-200">
-            <div className="w-9 h-9 rounded-none bg-[#0a0a0a] border border-[#333333] flex items-center justify-center text-[#00FF00]">
+          <div className={`p-4 rounded-none border flex items-center gap-3 transition-colors duration-200 ${
+            theme === 'dark' ? 'bg-[#111111] border-[#222222] hover:border-[#00FF00]' : 'bg-white border-slate-200 hover:border-emerald-500 shadow-sm'
+          }`}>
+            <div className={`w-9 h-9 rounded-none border flex items-center justify-center ${
+              theme === 'dark' ? 'bg-[#0a0a0a] border-[#333333] text-[#00FF00]' : 'bg-slate-50 border-slate-200 text-slate-600'
+            }`}>
               <UserIcon className="h-4.5 w-4.5" />
             </div>
             <div className="overflow-hidden">
-              <span className="font-bold text-white block truncate uppercase tracking-tight">{currentUser.name}</span>
-              <span className="text-[8px] uppercase font-mono font-bold bg-[#1A1A1A] text-[#00FF00] px-1.5 py-0.5 rounded-none leading-none inline-block mt-1">
+              <span className={`font-bold block truncate uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{currentUser.name}</span>
+              <span className={`text-[8px] uppercase font-mono font-bold px-1.5 py-0.5 rounded-none leading-none inline-block mt-1 ${
+                theme === 'dark' ? 'bg-[#1A1A1A] text-[#00FF00]' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              }`}>
                 {currentUser.role.replace('_', ' ')}
               </span>
             </div>
@@ -357,7 +432,9 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('dashboard')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'dashboard' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'text-[#888888] hover:text-white hover:bg-[#111111]'
+                  activeTab === 'dashboard' 
+                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
+                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
                 }`}
               >
                 <LayoutDashboard className="h-4 w-4" /> Dashboard & Monitoring
@@ -369,7 +446,9 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('approvals')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'approvals' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'text-[#888888] hover:text-white hover:bg-[#111111]'
+                  activeTab === 'approvals' 
+                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
+                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
                 }`}
               >
                 <ClipboardCheck className="h-4 w-4" /> Tasdiqlash Zanjiri
@@ -381,7 +460,9 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('batches')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'batches' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'text-[#888888] hover:text-white hover:bg-[#111111]'
+                  activeTab === 'batches' 
+                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
+                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
                 }`}
               >
                 <Boxes className="h-4 w-4" /> Partiyalar / QR chop
@@ -393,7 +474,9 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('scanner')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'scanner' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'text-[#888888] hover:text-white hover:bg-[#111111]'
+                  activeTab === 'scanner' 
+                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
+                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
                 }`}
               >
                 <QrCode className="h-4 w-4" /> Skanerlash Simulator
@@ -405,7 +488,9 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('transfers')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'transfers' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'text-[#888888] hover:text-white hover:bg-[#111111]'
+                  activeTab === 'transfers' 
+                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
+                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
                 }`}
               >
                 <ArrowLeftRight className="h-4 w-4" /> O'tkazishlar
@@ -417,7 +502,9 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('sales')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'sales' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'text-[#888888] hover:text-white hover:bg-[#111111]'
+                  activeTab === 'sales' 
+                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
+                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
                 }`}
               >
                 <ShoppingBag className="h-4 w-4" /> Sotuv & To'lovlar
@@ -429,7 +516,9 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('catalog')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'catalog' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'text-[#888888] hover:text-white hover:bg-[#111111]'
+                  activeTab === 'catalog' 
+                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
+                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
                 }`}
               >
                 <BookOpen className="h-4 w-4" /> Katalog & Navlar
@@ -440,7 +529,9 @@ export default function App() {
             <button
               onClick={() => setActiveTab('tasks')}
               className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                activeTab === 'tasks' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'text-[#888888] hover:text-white hover:bg-[#111111]'
+                activeTab === 'tasks' 
+                  ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
+                  : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
               }`}
             >
               <ClipboardList className="h-4 w-4" /> Topshiriqlar
@@ -451,7 +542,9 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('admin_users')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'admin_users' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'text-[#888888] hover:text-white hover:bg-[#111111]'
+                  activeTab === 'admin_users' 
+                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
+                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
                 }`}
               >
                 <Users className="h-4 w-4" /> Xodimlar
@@ -463,17 +556,25 @@ export default function App() {
         {/* Logout bottom trigger */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none text-red-500 hover:bg-neutral-900 font-bold uppercase tracking-tight transition-colors text-left cursor-pointer border border-[#222]"
+          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none text-red-500 font-bold uppercase tracking-tight transition-colors text-left cursor-pointer border ${
+            theme === 'dark' ? 'hover:bg-neutral-900 border-[#222]' : 'hover:bg-red-50 border-red-200 bg-red-50/20'
+          }`}
         >
           <LogOut className="h-4 w-4 shrink-0" /> Tizimdan chiqish
         </button>
       </aside>
 
       {/* Main Container screen content */}
-      <main className="flex-1 p-10 overflow-y-auto bg-[#0A0A0A] flex flex-col justify-start">
+      <main className={`flex-1 p-10 overflow-y-auto flex flex-col justify-start transition-colors duration-200 ${
+        theme === 'dark' ? 'bg-[#0A0A0A]' : 'bg-slate-100'
+      }`}>
         {/* Unified Terminal Mainframe Header */}
-        <header className="flex justify-between items-baseline border-b border-[#333333] pb-6 mb-10 shrink-0 select-none">
-          <h1 className="text-4xl font-black tracking-tight leading-none m-0 uppercase text-white">
+        <header className={`flex justify-between items-baseline border-b pb-6 mb-10 shrink-0 select-none ${
+          theme === 'dark' ? 'border-[#333333]' : 'border-slate-200'
+        }`}>
+          <h1 className={`text-4xl font-black tracking-tight leading-none m-0 uppercase ${
+            theme === 'dark' ? 'text-white' : 'text-slate-900'
+          }`}>
             {activeTab === 'dashboard' ? "MONITORING PANELI" : 
              activeTab === 'batches' ? "URUG' & KO'CHAT PARTIYALARI" :
              activeTab === 'scanner' ? "QR SKANERLASH TIZIMI" :
@@ -485,7 +586,9 @@ export default function App() {
              activeTab === 'admin_users' ? "XODIMLAR BOSHQARUVI" : "TEPLITSA MONITOR"}
           </h1>
           <div className="text-right">
-            <p className="text-[#555] text-[10px] font-mono uppercase tracking-widest leading-none mb-1">Status: Faol</p>
+            <p className={`text-[10px] font-mono uppercase tracking-widest leading-none mb-1 ${
+              theme === 'dark' ? 'text-[#555]' : 'text-slate-400'
+            }`}>Status: Faol</p>
             <p className="text-sm font-bold font-mono tracking-wider text-[#00FF00]">ONLINE</p>
           </div>
         </header>

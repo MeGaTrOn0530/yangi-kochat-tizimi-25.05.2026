@@ -6,6 +6,12 @@ import {
 export const API_BASE = '/api';
 
 export const api = {
+  // DB status
+  async getDbStatus(): Promise<{ mode: string; connected: boolean; info: string; config: any }> {
+    const res = await fetch(`${API_BASE}/db-status`);
+    return res.json();
+  },
+
   // Auth
   async login(email: string, password: string): Promise<{ user: User; message: string }> {
     const res = await fetch(`${API_BASE}/auth/login`, {
