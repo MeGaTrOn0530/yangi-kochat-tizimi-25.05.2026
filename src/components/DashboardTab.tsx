@@ -166,13 +166,13 @@ export default function DashboardTab({ locations, plantTypes, varieties, userRol
         <div className="flex flex-wrap gap-3 w-full md:w-auto">
           <button 
             onClick={exportToExcel}
-            className="flex-1 md:flex-initial bg-[#1A1A1A] hover:bg-[#00FF00] hover:text-[#0A0A0A] text-white border-2 border-[#333333] hover:border-transparent font-black px-5 py-3 text-xs uppercase font-mono tracking-tight flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer rounded-none"
+            className="flex-1 md:flex-initial bg-emerald-600 hover:bg-emerald-500 text-white font-black px-5 py-3 text-xs uppercase font-mono tracking-tight flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer border-0 rounded-xl shadow-lg hover:shadow-emerald-500/20"
           >
             <FileSpreadsheet className="h-4.5 w-4.5 shrink-0" /> EXCEL (CSV) EKSPORT
           </button>
           <button 
             onClick={() => setShowPrintModal(true)}
-            className="flex-1 md:flex-initial bg-[#E0E0E0] hover:bg-[#00FF00] text-[#0A0A0A] font-black px-5 py-3 text-xs uppercase font-mono tracking-tight flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer border border-transparent rounded-none"
+            className="flex-1 md:flex-initial bg-zinc-800 hover:bg-zinc-700 text-white font-black px-5 py-3 text-xs uppercase font-mono tracking-tight flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer border-0 rounded-xl shadow-lg hover:shadow-zinc-700/20"
           >
             <Printer className="h-4.5 w-4.5 shrink-0" /> PDF CHOP ETISH
           </button>

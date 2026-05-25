@@ -113,6 +113,15 @@ export default function GreenhouseTab({ locations, userRole, theme }: Greenhouse
     });
   };
 
+  // Check if a shelf is adjacent to a quarantined shelf in the same visual shelf row
+  const isAdjacentToQuarantinedInSameRow = (shelfId: number) => {
+    if (quarantinedShelves.includes(shelfId)) return false;
+    const rowGroups = [[1, 2], [3, 4], [5, 6]];
+    const myRow = rowGroups.find(row => row.includes(shelfId));
+    if (!myRow) return false;
+    return myRow.some(otherId => otherId !== shelfId && quarantinedShelves.includes(otherId));
+  };
+
   // NPK calculation logic
   const calculateNPK = () => {
     let multiplier = 1.0;
@@ -824,14 +833,19 @@ export default function GreenhouseTab({ locations, userRole, theme }: Greenhouse
                 {shelvesData.map(shelf => {
                   const isSelected = selectedShelf === shelf.id;
                   const isQuarantine = quarantinedShelves.includes(shelf.id);
+                  const isAdjacentWarning = isAdjacentToQuarantinedInSameRow(shelf.id);
                   const isEmpty = shelf.crop.includes('Bo\'sh');
                   
                   let bgCard = theme === 'dark' ? 'bg-[#151515] border-zinc-850 hover:bg-zinc-900/80' : 'bg-gray-50 hover:bg-gray-100/75';
                   
                   if (isQuarantine) {
                     bgCard = theme === 'dark' 
-                      ? 'bg-amber-955/20 border-amber-500 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.35)] animate-pulse' 
+                      ? 'bg-amber-950/20 border-amber-500 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.35)] animate-pulse' 
                       : 'bg-amber-50 border-amber-400 text-amber-900 shadow-[0_0_12px_rgba(245,158,11,0.25)] animate-pulse';
+                  } else if (isAdjacentWarning) {
+                    bgCard = theme === 'dark'
+                      ? 'bg-amber-950/10 border-amber-600/70 text-amber-500 shadow-[0_0_15px_rgba(217,119,6,0.35)] animate-pulse'
+                      : 'bg-amber-50/50 border-amber-500 text-amber-800 shadow-[0_0_12px_rgba(217,119,6,0.25)] animate-pulse';
                   } else if (isSelected) {
                     bgCard = theme === 'dark' ? 'bg-emerald-950/25 border-[#00FF00] text-white shadow-lg' : 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-xs';
                   }
@@ -870,8 +884,14 @@ export default function GreenhouseTab({ locations, userRole, theme }: Greenhouse
                       <div className="flex justify-between items-center text-[8px] font-mono mt-1 pt-1 border-t border-slate-200/40">
                         <span>{shelf.batch}</span>
                         <span className={`font-bold uppercase ${
-                          isQuarantine ? 'text-amber-500 animate-pulse font-black' : isEmpty ? 'text-gray-400' : 'text-[#00FF00]'
-                        }`}>{isQuarantine ? '🚨 Karantin' : shelf.stage}</span>
+                          isQuarantine 
+                            ? 'text-amber-500 animate-pulse font-black' 
+                            : isAdjacentWarning 
+                              ? 'text-amber-500 animate-pulse font-bold' 
+                              : isEmpty 
+                                ? 'text-gray-400' 
+                                : 'text-[#00FF00]'
+                        }`}>{isQuarantine ? '🚨 Karantin' : isAdjacentWarning ? '⚠️ TARQALISH XAVFI' : shelf.stage}</span>
                       </div>
                     </button>
                   );

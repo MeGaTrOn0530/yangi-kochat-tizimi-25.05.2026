@@ -30,6 +30,28 @@ export default function BatchesTab({ locations, plantTypes, varieties, graftType
   const [loadingPlants, setLoadingPlants] = useState(false);
   const [showQrPrintView, setShowQrPrintView] = useState(false);
 
+  // X-Print Modal States
+  const [xPrintBatch, setXPrintBatch] = useState<Batch | null>(null);
+  const [xPrintPlants, setXPrintPlants] = useState<Plant[]>([]);
+  const [loadingXPrint, setLoadingXPrint] = useState(false);
+  const [printMode, setPrintMode] = useState<'all' | 'single'>('all'); // all = group (batch + plants), single = select
+  const [selectedPlantIdsToPrint, setSelectedPlantIdsToPrint] = useState<number[]>([]);
+
+  const handleXPrint = async (batch: Batch) => {
+    setXPrintBatch(batch);
+    setLoadingXPrint(true);
+    setXPrintPlants([]);
+    try {
+      const plants = await api.getBatchPlants(batch.id);
+      setXPrintPlants(plants);
+      setSelectedPlantIdsToPrint(plants.map(p => p.id));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingXPrint(false);
+    }
+  };
+
   const fetchBatches = async () => {
     setLoading(true);
     try {
@@ -177,12 +199,21 @@ export default function BatchesTab({ locations, plantTypes, varieties, graftType
                     </td>
                     <td className="py-4 px-4 text-gray-400 font-mono">{new Date(batch.created_at).toLocaleDateString('uz-UZ')}</td>
                     <td className="py-4 px-4 text-center">
-                      <button 
-                        onClick={() => handleViewBatch(batch)}
-                        className="bg-emerald-50 text-emerald-700 hover:bg-emerald-150 p-1.5 rounded-lg inline-flex items-center gap-1 cursor-pointer transition-all"
-                      >
-                        <Eye className="h-3.5 w-3.5" /> <span className="text-[10px] font-mono font-bold">QR / Ko'rish</span>
-                      </button>
+                      <div className="inline-flex gap-1.5 justify-center">
+                        <button 
+                          onClick={() => handleViewBatch(batch)}
+                          className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 p-1.5 rounded-lg inline-flex items-center gap-1 cursor-pointer transition-all border border-emerald-250 dark:border-emerald-800/30"
+                        >
+                          <Eye className="h-3.5 w-3.5" /> <span className="text-[10px] font-mono font-bold">Batafsil</span>
+                        </button>
+                        <button 
+                          onClick={() => handleXPrint(batch)}
+                          className="bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/30 p-1.5 rounded-lg inline-flex items-center gap-1 cursor-pointer transition-all border border-sky-250 dark:border-sky-800/30"
+                          title="Dastlab partiyaning QR kodi, so'ng har bir donaning QR kodi (X-Print)"
+                        >
+                          <Printer className="h-3.5 w-3.5" /> <span className="text-[10px] font-mono font-bold">X-Print</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -471,6 +502,287 @@ export default function BatchesTab({ locations, plantTypes, varieties, graftType
           </div>
         </div>
       )}
+
+      {/* --- MODAL: X-Print Premium Label System (Group or Individual QRs) --- */}
+      {xPrintBatch && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto">
+          {/* Include printable specific style override */}
+          <style>{`
+            @media print {
+              body {
+                background: white !important;
+                color: black !important;
+              }
+              /* Hide all components outer layer */
+              #root, .fixed, .bg-black\\/60, aside, main, header, nav {
+                visibility: hidden !important;
+                display: none !important;
+              }
+              /* Show printable element exclusively */
+              #x-print-printable-area-wrapper {
+                visibility: visible !important;
+                display: block !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+              }
+              #x-print-printable-area-wrapper * {
+                visibility: visible !important;
+              }
+              .page-break-after {
+                page-break-after: always !important;
+                break-after: page !important;
+              }
+              .no-print {
+                display: none !important;
+              }
+            }
+          `}</style>
+
+          <div className="bg-white dark:bg-[#111111] rounded-2xl border border-zinc-200 dark:border-[#222222] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in fade-in-50 zoom-in-95 no-print">
+            <div className="p-5 border-b border-gray-150 dark:border-[#222222] flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/45 rounded-t-2xl">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Printer className="text-sky-500" /> X-Print™: QR va Markalar Chop Etish Tizimi
+                </h3>
+                <p className="text-[11px] text-gray-500 dark:text-zinc-400 font-mono mt-0.5">
+                  Partiya: <span className="font-bold text-sky-500">{xPrintBatch.batch_code}</span> | 
+                  Ekin: <span className="text-zinc-700 dark:text-zinc-300 font-bold">{plantTypes.find(p => p.id === xPrintBatch.plant_type_id)?.name} ({varieties.find(v => v.id === xPrintBatch.variety_id)?.name})</span>
+                </p>
+              </div>
+              <button 
+                onClick={() => setXPrintBatch(null)}
+                className="p-1.5 border border-zinc-200 dark:border-zinc-850 hover:bg-zinc-100 dark:hover:bg-zinc-850 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 rounded-xl cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-[#080808] grid grid-cols-1 md:grid-cols-12 gap-6">
+              {/* Left Side: Controls & Selector list */}
+              <div className="md:col-span-5 space-y-4 font-sans text-xs flex flex-col">
+                <div className="bg-white dark:bg-[#151515] p-4 rounded-xl border border-zinc-150 dark:border-[#222222] space-y-3 shadow-xs">
+                  <span className="block text-zinc-400 uppercase font-mono text-[9px] font-bold tracking-wider">1. Chop etish turini tanlang</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        setPrintMode('all');
+                        setSelectedPlantIdsToPrint(xPrintPlants.map(p => p.id));
+                      }}
+                      className={`py-2 px-3 rounded-lg border text-center font-bold font-sans transition-all cursor-pointer ${
+                        printMode === 'all'
+                          ? 'bg-sky-500 text-white border-sky-500'
+                          : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100'
+                      }`}
+                    >
+                      📦 Guruppaviy (Hamkorlikda)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPrintMode('single');
+                        setSelectedPlantIdsToPrint([]);
+                      }}
+                      className={`py-2 px-3 rounded-lg border text-center font-bold font-sans transition-all cursor-pointer ${
+                        printMode === 'single'
+                          ? 'bg-sky-500 text-white border-sky-500'
+                          : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100'
+                      }`}
+                    >
+                      🌱 Donali (Yakka / Erkin)
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 italic">
+                    {printMode === 'all' 
+                      ? "Avval partiyaning bosh QR kodi, so'ngra qatorasiga jami barcha individual donalar kodi bitta listga jo'natiladi." 
+                      : "Ro'yxatdan faqat o'zingizga kerakli bo'lgan muayyan o'simlik donasining QR kodlarini tanlab chiqaring."}
+                  </p>
+                </div>
+
+                {/* Plant table checklist */}
+                <div className="bg-white dark:bg-[#151515] rounded-xl border border-zinc-150 dark:border-[#222222] overflow-hidden flex-1 flex flex-col min-h-[220px] max-h-[350px] shadow-xs">
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-150 dark:border-[#222222] flex items-center justify-between">
+                    <span className="font-mono text-[9px] font-bold uppercase text-zinc-500">Chop etiluvchi donalar ro'yxati</span>
+                    {printMode === 'single' && (
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => setSelectedPlantIdsToPrint(xPrintPlants.map(p => p.id))}
+                          className="text-[8px] uppercase tracking-wide bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400 px-1.5 py-0.5 rounded border border-sky-200 dark:border-sky-850 cursor-pointer font-bold"
+                        >
+                          Barchasini tanlash
+                        </button>
+                        <button
+                          onClick={() => setSelectedPlantIdsToPrint([])}
+                          className="text-[8px] uppercase tracking-wide bg-zinc-100 dark:bg-[#222] text-zinc-500 px-1.5 py-0.5 rounded cursor-pointer font-bold"
+                        >
+                          Tozalash
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="overflow-y-auto flex-1 divide-y divide-zinc-100 dark:divide-zinc-850">
+                    {loadingXPrint ? (
+                      <div className="p-6 text-center text-zinc-400 font-mono text-[10px]">Yuklanmoqda...</div>
+                    ) : xPrintPlants.length === 0 ? (
+                      <div className="p-6 text-center text-zinc-400 font-mono text-[10px]">O'simliklar mavjud emas</div>
+                    ) : (
+                      xPrintPlants.map((plt, idx) => {
+                        const isChecked = selectedPlantIdsToPrint.includes(plt.id);
+                        return (
+                          <div 
+                            key={plt.id}
+                            onClick={() => {
+                              if (printMode === 'all') return;
+                              setSelectedPlantIdsToPrint(prev => 
+                                prev.includes(plt.id) ? prev.filter(id => id !== plt.id) : [...prev, plt.id]
+                              );
+                            }}
+                            className={`p-2.5 flex items-center justify-between text-[11px] hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-all ${
+                              printMode === 'all' ? 'opacity-80' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {printMode === 'single' ? (
+                                <input 
+                                  type="checkbox" 
+                                  checked={isChecked}
+                                  onChange={() => {}} // Handled by outer div onClick
+                                  className="h-3.5 w-3.5 rounded text-sky-500 focus:ring-sky-500 border-zinc-300 dark:border-zinc-700 cursor-pointer"
+                                />
+                              ) : (
+                                <span className="text-[10px] text-zinc-405 font-mono">#{idx + 1}</span>
+                              )}
+                              <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">{plt.plant_code}</span>
+                            </div>
+                            <span className={`text-[8.5px] uppercase font-mono px-1.5 py-0.5 rounded border ${
+                              plt.stage === 'cassette' ? 'bg-indigo-50 border-indigo-100 text-indigo-700 dark:bg-indigo-950/20 dark:border-indigo-900/30' :
+                              plt.stage === 'grafting' ? 'bg-amber-50 border-amber-100 text-amber-700 dark:bg-amber-950/20 dark:border-amber-900/30' :
+                              plt.stage === 'seedling' ? 'bg-teal-50 border-teal-100 text-teal-700 dark:bg-teal-950/20 dark:border-teal-900/30' :
+                              'bg-emerald-50 border-emerald-100 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-900/30'
+                            }`}>
+                              {plt.stage === 'cassette' ? 'Kaseta' : plt.stage === 'grafting' ? 'Payvand' : plt.stage === 'seedling' ? 'Ko\'chat' : 'Tayyor'}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side: Visual Thermal Roller Simulation Sticky */}
+              <div className="md:col-span-7 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-zinc-400 dark:text-zinc-500 uppercase font-mono text-[9px] font-bold tracking-wider">2. Termo-kasseta / Stikerlar roligi simulyatori</span>
+                    <span className="text-zinc-500 font-mono text-[9px]">Chop etiluvchi: <strong className="text-sky-500">{printMode === 'all' ? selectedPlantIdsToPrint.length + 1 : selectedPlantIdsToPrint.length} dona</strong></span>
+                  </div>
+
+                  {/* Visual Roller Area */}
+                  <div className="bg-zinc-200 dark:bg-zinc-900 border border-zinc-300 dark:border-[#2d2d2d] rounded-2xl p-6 overflow-y-auto max-h-[460px] flex flex-col items-center gap-4 shadow-inner">
+                    {/* Visual Roller Tape Header */}
+                    <div className="w-full h-2.5 bg-zinc-300 dark:bg-zinc-950 rounded-full shrink-0 border-b border-white/10" />
+
+                    {/* Dynamic previews aligned consecutively inside the Tape */}
+                    {printMode === 'all' && (
+                      <div className="bg-white text-zinc-950 w-full max-w-[290px] p-5 rounded-md border border-zinc-300 shadow-[0_4px_10px_rgba(0,0,0,0.15)] text-center relative flex flex-col items-center">
+                        <div className="absolute top-1.5 left-2 bg-emerald-600 text-white font-mono uppercase text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full">BOSH PARTIYA STIKERI</div>
+                        <img src={xPrintBatch.qr_code} alt="Batch QR" className="w-24 h-24 mb-2 object-contain mt-3 p-1 border border-zinc-100 rounded" referrerPolicy="no-referrer" />
+                        <div className="text-center font-sans">
+                          <span className="font-mono font-black text-gray-900 block text-[13px] tracking-wide">{xPrintBatch.batch_code}</span>
+                          <span className="text-[9px] text-zinc-500 font-bold block mt-1 uppercase text-emerald-600">{plantTypes.find(p => p.id === xPrintBatch.plant_type_id)?.name} ({varieties.find(v => v.id === xPrintBatch.variety_id)?.name})</span>
+                          <span className="text-[8.5px] text-zinc-400 block mt-0.5 font-mono">Barcha ko'chatlar: {xPrintBatch.total_count} dona</span>
+                        </div>
+                        {/* Roller cut dashes line simulation */}
+                        <div className="absolute -bottom-2.5 left-0 right-0 border-t border-dashed border-zinc-400 text-zinc-400 text-[8px] font-mono select-none">====================</div>
+                      </div>
+                    )}
+
+                    {selectedPlantIdsToPrint.length === 0 ? (
+                      <div className="text-center py-20 text-zinc-400 dark:text-zinc-500 text-[11px] font-mono">
+                        Chop etish uchun birorta dona ko'chatni tanlang!
+                      </div>
+                    ) : (
+                      xPrintPlants
+                        .filter(plt => selectedPlantIdsToPrint.includes(plt.id))
+                        .map((plt, idx) => (
+                          <div key={plt.id} className="bg-white text-zinc-950 w-full max-w-[290px] p-4 rounded-md border border-zinc-300 shadow-[0_4px_10px_rgba(0,0,0,0.15)] text-center relative flex flex-col items-center justify-between">
+                            <span className="absolute top-1.5 right-2 bg-gray-100 text-gray-500 font-mono text-[8.5px] font-bold px-1.5 py-0.5 rounded-sm">X-DONA {idx + 1}</span>
+                            <img src={plt.qr_code} alt="Plant QR" className="w-20 h-20 mb-2 object-contain mt-2.5 p-1 border border-zinc-100 rounded" referrerPolicy="no-referrer" />
+                            <div className="text-center font-sans w-full">
+                              <span className="font-mono font-bold text-zinc-900 block text-[11px]">{plt.plant_code}</span>
+                              <div className="flex justify-between items-center text-[8.5px] text-zinc-500 bg-zinc-50 p-1 border border-zinc-100 rounded-md mt-1.5 mx-2 font-mono uppercase">
+                                <span className="font-bold">{plt.stage === 'cassette' ? 'Kaseta' : plt.stage === 'grafting' ? 'Payvand' : plt.stage === 'seedling' ? 'Ko\'chat' : 'Tayyor'}</span>
+                                <span className="opacity-80">Row: {xPrintBatch.batch_code}</span>
+                              </div>
+                            </div>
+                            {/* Roller cut dashes line simulation */}
+                            <div className="absolute -bottom-2.5 left-0 right-0 border-t border-dashed border-zinc-400 text-zinc-400 text-[8px] font-mono select-none">====================</div>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 bg-sky-50 dark:bg-sky-950/20 border border-sky-400/20 text-sky-850 dark:text-sky-400 rounded-xl leading-relaxed text-[10px] space-y-1 font-sans">
+                  <span className="font-bold uppercase block text-sky-600 dark:text-sky-305">🖨️ Printer Konfiguratori:</span>
+                  Tizim har qanday termosublimatsiyali stiker printerlariga moslashadi (58mm x 40mm standard o'lchamga optimallashtirilgan). Haqiqiy chop etish uchun pastdagi "Chop Etish" tugmasini bosing va print darchasini oching.
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-zinc-150 dark:border-[#222222] bg-zinc-50 dark:bg-zinc-900/40 rounded-b-2xl flex items-center justify-between">
+              <button 
+                onClick={() => setXPrintBatch(null)}
+                className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-850 text-xs font-bold transition-all cursor-pointer"
+              >
+                Bekor Qilish
+              </button>
+
+              <button 
+                onClick={() => {
+                  if (printMode === 'single' && selectedPlantIdsToPrint.length === 0) {
+                    alert("Iltimos, avvalo bitta yoki undan ko'p ko'chat donasini tanlang!");
+                    return;
+                  }
+                  setTimeout(() => {
+                    window.print();
+                  }, 200);
+                }}
+                className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl border border-sky-500 shadow-lg flex items-center gap-1.5 cursor-pointer transition-all"
+              >
+                <Printer className="h-4 w-4" /> Barcha Markalarni Chop Etish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- HIDDEN WRAPPER STRICTLY FOR PHYSICAL PRINT STYLES --- */}
+      <div id="x-print-printable-area-wrapper" className="hidden">
+        {xPrintBatch && (
+          <div className="bg-white text-zinc-950 p-0 m-0 flex flex-col items-center justify-center font-sans">
+            {/* 1. Main Batch QR */}
+            {printMode === 'all' && (
+              <div className="w-[180px] h-[180px] p-0 m-0 flex items-center justify-center page-break-after mx-auto">
+                <img src={xPrintBatch.qr_code} alt="Batch QR Code" className="w-[170px] h-[170px] m-0 p-0 object-contain block" referrerPolicy="no-referrer" />
+              </div>
+            )}
+
+            {/* 2. Plant sequence QR list */}
+            {xPrintPlants
+              .filter(plt => selectedPlantIdsToPrint.includes(plt.id))
+              .map((plt) => (
+                <div key={plt.id} className="w-[180px] h-[180px] p-0 m-0 flex items-center justify-center page-break-after mx-auto">
+                  <img src={plt.qr_code} alt="Plant QR Code" className="w-[170px] h-[170px] m-0 p-0 object-contain block" referrerPolicy="no-referrer" />
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

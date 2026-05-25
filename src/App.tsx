@@ -107,6 +107,7 @@ export default function App() {
   const [globalNotificationsEnabled, setGlobalNotificationsEnabled] = useState<boolean>(true);
   const [greenhouseModulesEnabled, setGreenhouseModulesEnabled] = useState<boolean>(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const [showNotifModal, setShowNotifModal] = useState<boolean>(false);
 
   // Fetch global system settings
   useEffect(() => {
@@ -549,6 +550,63 @@ export default function App() {
   const isLab = currentUser.role === 'laborant';
   const isAcc = currentUser.role === 'accountant';
 
+  const getTabStyle = (tabId: string) => {
+    const isActive = activeTab === tabId;
+    if (theme === 'dark') {
+      if (!isActive) return 'text-zinc-500 hover:text-white hover:bg-zinc-900/40 border-l-2 border-transparent';
+      switch (tabId) {
+        case 'dashboard':
+          return 'bg-sky-500/10 text-sky-450 border-l-4 border-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.15)]';
+        case 'greenhouse':
+          return 'bg-emerald-500/10 text-[#00FF00] border-l-4 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]';
+        case 'approvals':
+          return 'bg-violet-500/10 text-violet-405 border-l-4 border-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.15)]';
+        case 'batches':
+          return 'bg-teal-500/10 text-teal-455 border-l-4 border-teal-500 shadow-[0_0_15px_rgba(20,184,166,0.15)]';
+        case 'scanner':
+          return 'bg-amber-500/10 text-amber-455 border-l-4 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.15)]';
+        case 'transfers':
+          return 'bg-indigo-500/10 text-indigo-455 border-l-4 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.15)]';
+        case 'sales':
+          return 'bg-rose-500/10 text-rose-455 border-l-4 border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.15)]';
+        case 'catalog':
+          return 'bg-fuchsia-500/10 text-fuchsia-455 border-l-4 border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.15)]';
+        case 'tasks':
+          return 'bg-yellow-500/10 text-yellow-455 border-l-4 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.15)]';
+        case 'admin_users':
+          return 'bg-red-500/10 text-red-455 border-l-4 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.15)]';
+        default:
+          return 'bg-zinc-800 text-white border-l-4 border-zinc-650';
+      }
+    } else {
+      if (!isActive) return 'text-slate-600 hover:text-black hover:bg-slate-100/65 border-l-2 border-transparent';
+      switch (tabId) {
+        case 'dashboard':
+          return 'bg-sky-50 text-sky-700 border-l-4 border-sky-500 font-bold';
+        case 'greenhouse':
+          return 'bg-emerald-50 text-emerald-800 border-l-4 border-emerald-500 font-bold';
+        case 'approvals':
+          return 'bg-violet-50 text-violet-700 border-l-4 border-violet-500 font-bold';
+        case 'batches':
+          return 'bg-teal-50 text-teal-800 border-l-4 border-teal-500 font-bold';
+        case 'scanner':
+          return 'bg-amber-50 text-amber-80 *md:text-amber-900 border-l-4 border-amber-500 font-bold';
+        case 'transfers':
+          return 'bg-indigo-50 text-indigo-850 border-l-4 border-indigo-500 font-bold';
+        case 'sales':
+          return 'bg-rose-50 text-rose-800 border-l-4 border-rose-500 font-bold';
+        case 'catalog':
+          return 'bg-fuchsia-50 text-fuchsia-800 border-l-4 border-fuchsia-500 font-bold';
+        case 'tasks':
+          return 'bg-amber-100 text-amber-900 border-l-4 border-amber-600 font-bold';
+        case 'admin_users':
+          return 'bg-red-50 text-red-800 border-l-4 border-red-500 font-bold';
+        default:
+          return 'bg-slate-100 text-slate-800 border-l-4 border-slate-500';
+      }
+    }
+  };
+
   return (
     <div className={`min-h-screen flex font-sans text-xs transition-colors duration-200 selection:bg-emerald-950/40 ${
       theme === 'dark' ? 'bg-[#0A0A0A] text-[#E0E0E0]' : 'bg-slate-50 text-slate-800'
@@ -627,259 +685,13 @@ export default function App() {
             </div>
           </div>
 
-          {/* Real-time Notification Controller & Variant Sandbox */}
-          <div className={`p-4 rounded-none border text-[10.5px] font-sans ${
-            theme === 'dark' ? 'bg-[#111111] border-[#222222]' : 'bg-slate-50 border-slate-200 shadow-xs'
-          }`}>
-            <div className="flex items-center justify-between border-b pb-2 mb-2 border-slate-200 dark:border-[#222222]">
-              <span className={`font-mono font-black uppercase text-[10px] tracking-wider ${
-                theme === 'dark' ? 'text-white' : 'text-slate-900'
-              }`}>🔔 Xabarnomalar</span>
-              <button
-                onClick={() => {
-                  setNotifSoundEnabled(!notifSoundEnabled);
-                  playElectronicChime();
-                }}
-                className={`p-1 rounded-none hover:bg-zinc-800/10 dark:hover:bg-zinc-800 cursor-pointer ${
-                  notifSoundEnabled ? 'text-[#00FF00]' : 'text-zinc-500'
-                }`}
-                title={notifSoundEnabled ? "Chime audio alerts are enabled" : "Chime audio alerts are muted"}
-                type="button"
-              >
-                {notifSoundEnabled ? <Volume2 className="h-3.5 w-3.5 text-[#00FF00]" /> : <VolumeX className="h-3.5 w-3.5 text-zinc-500" />}
-              </button>
-            </div>
-
-            {/* Admin/Manager Master Switch Toggles */}
-            {(currentUser.role === 'admin' || currentUser.role === 'director' || currentUser.role === 'head_agronomist') ? (
-              <div className="mb-2.5 pb-2 border-b border-dashed border-slate-200 dark:border-zinc-850 space-y-2">
-                <div>
-                  <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-wide text-zinc-500">
-                    <span>⚙️ TIZIM MASTER ALERTS:</span>
-                    <span className={`font-bold ${globalNotificationsEnabled ? 'text-[#00FF00]' : 'text-red-500'}`}>
-                      {globalNotificationsEnabled ? '[FAOL]' : '[YOPUQ]'}
-                    </span>
-                  </div>
-                  <div className="mt-1">
-                    <button
-                      onClick={async () => {
-                        try {
-                          const nextVal = !globalNotificationsEnabled;
-                          const up = await api.updateSystemSettings({ notificationsEnabled: nextVal });
-                          setGlobalNotificationsEnabled(up.notificationsEnabled);
-                          triggerToast(
-                            up.notificationsEnabled ? "TIZIM FAOL DEB BELGILANDI" : "TIZIM VAQTINChA YOPILDI",
-                            up.notificationsEnabled 
-                              ? "Barcha xodimlar va laborantlar uchun yaqinlashib kelayotgan topshiriqlar ogohlantirishi yoqildi."
-                              : "Barcha xodimlar uchun topshiriq ogohlantirishlari global ravishda o'chirildi.",
-                            up.notificationsEnabled ? 'success' : 'error',
-                            7000
-                          );
-                          if (notifSoundEnabled) playElectronicChime();
-                        } catch (e) {
-                          triggerToast("Xatolik", "Tizim kalitini o'zgartirishda xatolik yuz berdi.", "error");
-                        }
-                      }}
-                      className={`w-full py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-center border cursor-pointer transition-all duration-150 rounded-md ${
-                        globalNotificationsEnabled
-                          ? 'bg-rose-950/20 hover:bg-rose-900/30 text-rose-500 border-rose-500/30'
-                          : 'bg-emerald-950/20 hover:bg-emerald-900/30 text-[#00FF00] border-emerald-500/30'
-                      }`}
-                      type="button"
-                    >
-                      {globalNotificationsEnabled ? "🔴 ALERTLARNI HAMMADA O'CHIRISH" : "🟢 ALERTLARNI HAMMADA YOQISH"}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-wide text-zinc-500">
-                    <span>🌱 AQLLI MODULLAR:</span>
-                    <span className={`font-bold ${greenhouseModulesEnabled ? 'text-[#00FF00]' : 'text-amber-500'}`}>
-                      {greenhouseModulesEnabled ? '[OCHIQ]' : '[YOPUQ]'}
-                    </span>
-                  </div>
-                  <div className="mt-1">
-                    <button
-                      onClick={async () => {
-                        try {
-                          const nextVal = !greenhouseModulesEnabled;
-                          const up = await api.updateSystemSettings({ greenhouseModulesEnabled: nextVal });
-                          setGreenhouseModulesEnabled(up.greenhouseModulesEnabled);
-                          triggerToast(
-                            up.greenhouseModulesEnabled ? "AQLLI MODULLAR YOQILDI" : "AQLLI MODULLAR CHIKLANDI",
-                            up.greenhouseModulesEnabled 
-                              ? "Barcha agronomlar uchun sug'orish, urug' unuvchanligi kalkulyatori hamda interaktiv 2D xaritalari faollashdi."
-                              : "Aqlli issiqxona modullari va maxsus jurnallar boshqa xodimlarda bloklandi.",
-                            up.greenhouseModulesEnabled ? 'success' : 'warning',
-                            7000
-                          );
-                          if (notifSoundEnabled) playElectronicChime();
-                        } catch (e) {
-                          triggerToast("Xatolik", "Aqlli modullar o'zgartirishida xatolik yuz berdi.", "error");
-                        }
-                      }}
-                      className={`w-full py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-center border cursor-pointer transition-all duration-150 rounded-md ${
-                        greenhouseModulesEnabled
-                          ? 'bg-amber-950/20 hover:bg-amber-900/10 text-amber-500 border-amber-500/30'
-                          : 'bg-sky-950/20 hover:bg-sky-900/30 text-sky-450 border-sky-500/30'
-                      }`}
-                      type="button"
-                    >
-                      {greenhouseModulesEnabled ? "🔒 MODULLARNI BLOKLASH" : "🔓 MODULLARNI RUXSAT BERISH"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="mb-2 pb-2 border-b border-dashed border-slate-200 dark:border-zinc-850 space-y-1 select-none font-mono text-[9px]">
-                <div className="flex items-center justify-between uppercase text-zinc-500">
-                  <span>ALERTLAR:</span>
-                  <span className={`font-bold ${globalNotificationsEnabled ? 'text-[#00FF00]' : 'text-amber-500'}`}>
-                    {globalNotificationsEnabled ? '🟢 RUXSAT ETILGAN' : '🔴 TAQIQLANGAN'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between uppercase text-zinc-500">
-                  <span>AQLLI MODULLAR:</span>
-                  <span className={`font-bold ${greenhouseModulesEnabled ? 'text-[#00FF00]' : 'text-amber-550'}`}>
-                    {greenhouseModulesEnabled ? '🟢 FAOL' : '🔴 ADMIN CHEKLAGAN'}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              {/* Channel Toggles */}
-              <div className="flex items-center justify-between font-mono text-[9px] text-[#888888] uppercase select-none">
-                <span>1. In-App Toast:</span>
-                <button 
-                  onClick={() => {
-                    setNotifInAppEnabled(!notifInAppEnabled);
-                    triggerToast("BOSHQA VARIANT: SOZLAMALAR YAXSHILANDI", "Visual toast xabarnomalar tizimi yangilandi.", "info", 5000);
-                  }}
-                  className={`px-1.5 py-0.5 font-bold cursor-pointer text-[8px] rounded-xs border border-transparent ${
-                    notifInAppEnabled ? 'text-[#00FF00] dark:bg-emerald-950/20' : 'text-zinc-500 hover:text-white'
-                  }`}
-                  type="button"
-                >
-                  {notifInAppEnabled ? "[FAOL]" : "[YUPUQ]"}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between font-mono text-[9px] text-[#888888] uppercase select-none">
-                <span>2. Telegram Bot:</span>
-                <button 
-                  onClick={() => {
-                    setNotifTelegramSim(!notifTelegramSim);
-                    triggerToast("Telegram kanali sozlandi", "Telegram bot simulyatsiyasi o'zgartirildi.", "info", 5000);
-                  }}
-                  className={`px-1.5 py-0.5 font-bold cursor-pointer text-[8px] rounded-xs border border-transparent ${
-                    notifTelegramSim ? 'text-sky-400 dark:bg-sky-950/20' : 'text-zinc-500 hover:text-white'
-                  }`}
-                  type="button"
-                >
-                  {notifTelegramSim ? "[SIMUL]" : "[YUPUQ]"}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between font-mono text-[9px] text-[#888888] uppercase select-none">
-                <span>3. Sistem Push:</span>
-                <button 
-                  onClick={() => {
-                    setNotifBrowserSim(!notifBrowserSim);
-                    triggerToast("Tizim Push simulyatori", "Browser orqali simulyatsiya sozlamalari yangilandi.", "info", 5000);
-                  }}
-                  className={`px-1.5 py-0.5 font-bold cursor-pointer text-[8px] rounded-xs border border-transparent ${
-                    notifBrowserSim ? 'text-amber-500 dark:bg-amber-950/20' : 'text-zinc-500 hover:text-white'
-                  }`}
-                  type="button"
-                >
-                  {notifBrowserSim ? "[SIMUL]" : "[YUPUQ]"}
-                </button>
-              </div>
-
-              {/* Threshold Selection */}
-              <div className="pt-1 flex items-center justify-between select-none">
-                <span className="text-[9px] text-zinc-500 dark:text-[#888888] font-bold uppercase shrink-0 font-mono">Muhlat oralig'i:</span>
-                <select
-                  value={notifThresholdHours}
-                  onChange={e => {
-                    const val = Number(e.target.value);
-                    setNotifThresholdHours(val);
-                    triggerToast("Oraliq yangilandi", `Task ogohlantirish muddati ${val} soatga sozladi.`, "info", 6000);
-                  }}
-                  className="bg-white dark:bg-black text-[9px] py-0.5 px-1 border border-zinc-200 dark:border-zinc-800 text-right font-mono text-zinc-700 dark:text-zinc-300 w-18"
-                >
-                  <option value={12}>12 soat</option>
-                  <option value={24}>24 soat</option>
-                  <option value={48}>48 soat</option>
-                  <option value={72}>72 soat</option>
-                </select>
-              </div>
-
-              {/* Simulation Sandbox / Sandbox Variants for Managers to interact */}
-              <div className="pt-2 border-t border-slate-200 dark:border-[#222222] grid grid-cols-2 gap-1.5">
-                <button
-                  onClick={() => {
-                    triggerToast(
-                      "⏳ MUHLAT YaQIN (OGOHLANTIRISH)",
-                      `"Datchik darchasini dezinfeksiyalash" topshirig'ingiz muddati yakunlanishiga kamida ${notifThresholdHours} soat qoldi.`,
-                      'warning'
-                    );
-                    if (notifSoundEnabled) playElectronicChime();
-                  }}
-                  className="bg-slate-100 dark:bg-zinc-900 text-amber-600 dark:text-amber-400 hover:bg-amber-600 dark:hover:bg-[#ffea00] hover:text-white dark:hover:text-black transition-all p-1 text-[8px] font-mono font-bold uppercase select-none cursor-pointer border border-zinc-200 dark:border-[#333333]"
-                  type="button"
-                >
-                  ⚡ test sarg'ish
-                </button>
-                <button
-                  onClick={() => {
-                    triggerToast(
-                      "🎉 VAZIFA MUvAFFAQIYATLI YAKUNLANDI",
-                      "O'tkazilgan tahlillar natijasida barcha datchiklar muvaffaqiyatli topshirildi va hisobot tasdiqlandi.",
-                      'success'
-                    );
-                    try {
-                      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-                      const ctx = new AudioCtx();
-                      const now = ctx.currentTime;
-                      const osc = ctx.createOscillator();
-                      const gain = ctx.createGain();
-                      osc.type = 'sine';
-                      osc.frequency.setValueAtTime(523.25, now); // C5
-                      osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
-                      osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
-                      osc.frequency.setValueAtTime(1046.5, now + 0.3); // C6
-                      gain.gain.setValueAtTime(0, now);
-                      gain.gain.linearRampToValueAtTime(0.12, now + 0.05);
-                      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-                      osc.connect(gain);
-                      gain.connect(ctx.destination);
-                      osc.start(now);
-                      osc.stop(now + 0.5);
-                    } catch(e) {}
-                  }}
-                  className="bg-slate-100 dark:bg-zinc-900 text-emerald-600 dark:text-[#00FF00] hover:bg-emerald-600 dark:hover:bg-[#00FF00] hover:text-white dark:hover:text-black transition-all p-1 text-[8px] font-mono font-bold uppercase select-none cursor-pointer border border-zinc-200 dark:border-[#333333]"
-                  type="button"
-                >
-                  🚀 test yashil
-                </button>
-              </div>
-            </div>
-          </div>
-
           {/* Sidebar Menu elements depending strictly on permissions */}
-          <nav className="space-y-1">
+          <nav className="space-y-1.5 font-sans flex-1">
             {/* Dashboard: available for majority except Laborant */}
             {!isLab && (
               <button
                 onClick={() => setActiveTab('dashboard')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'dashboard' 
-                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
-                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${getTabStyle('dashboard')}`}
               >
                 <LayoutDashboard className="h-4 w-4" /> Dashboard & Monitoring
               </button>
@@ -899,18 +711,14 @@ export default function App() {
                   }
                   setActiveTab('greenhouse');
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'greenhouse' 
-                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
-                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
-                } ${(!greenhouseModulesEnabled && !isAdminRole && !isHead) ? 'opacity-50' : ''}`}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${getTabStyle('greenhouse')} ${(!greenhouseModulesEnabled && !isAdminRole && !isHead) ? 'opacity-40' : ''}`}
                 type="button"
               >
                 <span className="flex items-center gap-2.5">
-                  <Sprout className="h-4 w-4 text-emerald-500 dark:text-[#00FF00]" /> Aqlli Issiqxona
+                  <Sprout className="h-4 w-4" /> Aqlli Issiqxona
                 </span>
                 {(!greenhouseModulesEnabled && !isAdminRole && !isHead) && (
-                  <span className="text-[7.5px] bg-amber-500/20 text-amber-500 font-mono px-1 border border-amber-500/20 rounded-sm">LOCKED</span>
+                  <span className="text-[7px] bg-amber-500/20 text-amber-500 font-mono px-1.5 py-0.5 border border-amber-500/20 rounded-sm">LOCKED</span>
                 )}
               </button>
             )}
@@ -919,11 +727,7 @@ export default function App() {
             {(isHead || isAdminRole) && (
               <button
                 onClick={() => setActiveTab('approvals')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'approvals' 
-                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
-                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${getTabStyle('approvals')}`}
               >
                 <ClipboardCheck className="h-4 w-4" /> Tasdiqlash Zanjiri
               </button>
@@ -933,11 +737,7 @@ export default function App() {
             {(isAgr || isHead || isAdminRole) && (
               <button
                 onClick={() => setActiveTab('batches')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'batches' 
-                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
-                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${getTabStyle('batches')}`}
               >
                 <Boxes className="h-4 w-4" /> Partiyalar / QR chop
               </button>
@@ -947,11 +747,7 @@ export default function App() {
             {(isAgr || isAdminRole || isHead) && (
               <button
                 onClick={() => setActiveTab('scanner')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'scanner' 
-                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
-                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${getTabStyle('scanner')}`}
               >
                 <QrCode className="h-4 w-4" /> Skanerlash Simulator
               </button>
@@ -961,11 +757,7 @@ export default function App() {
             {(isAgr || isAdminRole || isHead) && (
               <button
                 onClick={() => setActiveTab('transfers')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'transfers' 
-                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
-                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${getTabStyle('transfers')}`}
               >
                 <ArrowLeftRight className="h-4 w-4" /> O'tkazishlar
               </button>
@@ -975,11 +767,7 @@ export default function App() {
             {(isAgr || isAcc || isDir || isAdminRole) && (
               <button
                 onClick={() => setActiveTab('sales')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'sales' 
-                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
-                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${getTabStyle('sales')}`}
               >
                 <ShoppingBag className="h-4 w-4" /> Sotuv & To'lovlar
               </button>
@@ -989,11 +777,7 @@ export default function App() {
             {(isLab || isAdminRole || isDir || isHead) && (
               <button
                 onClick={() => setActiveTab('catalog')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'catalog' 
-                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
-                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${getTabStyle('catalog')}`}
               >
                 <BookOpen className="h-4 w-4" /> Katalog & Navlar
               </button>
@@ -1002,11 +786,7 @@ export default function App() {
             {/* Tasks list */}
             <button
               onClick={() => setActiveTab('tasks')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                activeTab === 'tasks' 
-                  ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
-                  : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
-              }`}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${getTabStyle('tasks')}`}
             >
               <ClipboardList className="h-4 w-4" /> Topshiriqlar
             </button>
@@ -1015,16 +795,32 @@ export default function App() {
             {isAdminRole && (
               <button
                 onClick={() => setActiveTab('admin_users')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none font-bold uppercase tracking-tight text-left transition-colors cursor-pointer ${
-                  activeTab === 'admin_users' 
-                    ? (theme === 'dark' ? 'bg-[#00FF00] text-[#0A0A0A]' : 'bg-emerald-600 text-white') 
-                    : (theme === 'dark' ? 'text-[#888888] hover:text-white hover:bg-[#111111]' : 'text-slate-600 hover:text-black hover:bg-slate-100')
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${getTabStyle('admin_users')}`}
               >
                 <Users className="h-4 w-4" /> Xodimlar
               </button>
             )}
           </nav>
+        </div>
+
+        {/* Separated Notifications System Trigger */}
+        <div className="px-3 py-2 border-t border-dashed border-zinc-200 dark:border-[#222]">
+          <button
+            onClick={() => {
+              setShowNotifModal(true);
+              playElectronicChime();
+            }}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold uppercase tracking-tight text-left transition-all duration-200 cursor-pointer ${
+              theme === 'dark' 
+                ? 'bg-sky-500/10 hover:bg-sky-500/20 text-sky-450 border border-sky-500/30 shadow-[0_0_12px_rgba(14,165,233,0.1)] hover:border-sky-500' 
+                : 'bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 shadow-[0_0_8px_rgba(14,165,233,0.06)]'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-sky-500 animate-bounce" /> Xabarlar va Alerotlar
+            </span>
+            <span className="text-[9px] font-mono font-bold bg-sky-500/20 text-sky-500 px-1.5 py-0.5 rounded">Tizimli</span>
+          </button>
         </div>
 
         {/* Logout bottom trigger */}
@@ -1059,6 +855,22 @@ export default function App() {
               type="button"
             >
               <Sliders className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => {
+                setShowNotifModal(true);
+                playElectronicChime();
+              }}
+              className={`p-2 border transition-all rounded-md cursor-pointer flex items-center gap-1.5 ${
+                theme === 'dark' 
+                  ? 'bg-sky-502 bg-[#111] border-[#333] text-sky-450 hover:text-sky-300 hover:border-sky-500' 
+                  : 'bg-white border-slate-250 text-sky-700 hover:text-sky-850 hover:bg-sky-50'
+              }`}
+              title="Xabarnomalar sozlamalari"
+              type="button"
+            >
+              <Bell className="h-4 w-4 text-sky-500 animate-pulse animate-bounce" />
+              <span className="text-[10px] uppercase font-bold font-mono no-print">XABARNOMALAR</span>
             </button>
             <h1 className={`text-4xl font-black tracking-tight leading-none m-0 uppercase ${
               theme === 'dark' ? 'text-white' : 'text-slate-900'
@@ -1328,6 +1140,343 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* BRAND NEW: Separate Premium Notifications and Alerts Control Center Modal */}
+      {showNotifModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in animate-in fade-in zoom-in-95">
+          <div className={`rounded-2xl border w-full max-w-xl shadow-2xl overflow-hidden transition-all ${
+            theme === 'dark' 
+              ? 'bg-[#121212] border-zinc-805 text-white' 
+              : 'bg-white border-slate-205 text-slate-800'
+          }`}>
+            {/* Modal Header */}
+            <div className={`p-5 flex items-center justify-between border-b ${
+              theme === 'dark' ? 'bg-[#191919] border-zinc-800' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <Bell className="h-5 w-5 text-sky-500 animate-bounce" />
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-tight font-sans">Ogohlantirish va Xabarlar tizimi</h3>
+                  <p className="text-[10px] text-zinc-400 font-mono">Tizimli master datchiklar va Telegram sozlamalari</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowNotifModal(false)}
+                className={`p-1.5 border hover:scale-105 rounded-lg transition-all cursor-pointer ${
+                  theme === 'dark' ? 'border-[#333] hover:bg-zinc-800 text-zinc-450' : 'border-slate-200 hover:bg-slate-100 text-slate-500'
+                }`}
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* SECTION 1: MASTER CONTROLLER (Admin & Director Roles Only) */}
+              {(currentUser?.role === 'admin' || currentUser?.role === 'director' || currentUser?.role === 'head_agronomist') ? (
+                <div className={`p-4 rounded-xl border space-y-4 ${
+                  theme === 'dark' ? 'bg-zinc-900/40 border-zinc-800' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <span className="block text-[10px] font-bold text-zinc-400 font-mono uppercase tracking-wider">🔒 MASTER BOSHQARUV TUGMALARI (ADMINISTRATOR)</span>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Switch 1: Global warnings */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono uppercase font-bold">
+                        <span>Tizim ogohlantirishlari:</span>
+                        <span className={globalNotificationsEnabled ? 'text-emerald-500' : 'text-red-500'}>
+                          {globalNotificationsEnabled ? 'FAOL' : 'YOPUQ'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const nextVal = !globalNotificationsEnabled;
+                            const up = await api.updateSystemSettings({ notificationsEnabled: nextVal });
+                            setGlobalNotificationsEnabled(up.notificationsEnabled);
+                            triggerToast(
+                              up.notificationsEnabled ? "TIZIM FAOL DEB BELGILANDI" : "TIZIM VAQTINChA YOPILDI",
+                              up.notificationsEnabled 
+                                ? "Barcha xodimlar va laborantlar uchun yaqinlashib kelayotgan topshiriqlar ogohlantirishi yoqildi."
+                                : "Barcha xodimlar uchun topshiriq ogohlantirishlari global ravishda o'chirildi.",
+                              up.notificationsEnabled ? 'success' : 'error',
+                              7000
+                            );
+                            if (notifSoundEnabled) playElectronicChime();
+                          } catch (e) {
+                            triggerToast("Xatolik", "Tizim sozlamasini o'zgartirishda xatolik yuz berdi.", "error");
+                          }
+                        }}
+                        className={`w-full py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-center border cursor-pointer transition-all duration-150 rounded-lg ${
+                          globalNotificationsEnabled
+                            ? 'bg-rose-950/20 hover:bg-rose-900/30 text-rose-500 border-rose-500/30'
+                            : 'bg-emerald-950/20 hover:bg-emerald-900/30 text-emerald-500 border-emerald-500/30'
+                        }`}
+                        type="button"
+                      >
+                        {globalNotificationsEnabled ? "🔴 GLOBAL ALERTLARNI O'CHIRISH" : "🟢 GLOBAL ALERTLARNI YOQISH"}
+                      </button>
+                    </div>
+
+                    {/* Switch 2: Advanced Greenhouse modules */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono uppercase font-bold">
+                        <span>Aqlli modullar ruxsati:</span>
+                        <span className={greenhouseModulesEnabled ? 'text-emerald-500' : 'text-amber-500'}>
+                          {greenhouseModulesEnabled ? 'OCHIQ' : 'BLOKLANGAN'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const nextVal = !greenhouseModulesEnabled;
+                            const up = await api.updateSystemSettings({ greenhouseModulesEnabled: nextVal });
+                            setGreenhouseModulesEnabled(up.greenhouseModulesEnabled);
+                            triggerToast(
+                              up.greenhouseModulesEnabled ? "AQLLI MODULLAR YOQILDI" : "AQLLI MODULLAR CHEKLANDI",
+                              up.greenhouseModulesEnabled 
+                                ? "Barcha agronomlar uchun sug'orish, urug' unuvchanligi kalkulyatori hamda interaktiv 2D xaritalari faollashdi."
+                                : "Aqlli issiqxona modullari va maxsus jurnallar boshqa xodimlarda bloklandi.",
+                              up.greenhouseModulesEnabled ? 'success' : 'warning',
+                              7000
+                            );
+                            if (notifSoundEnabled) playElectronicChime();
+                          } catch (e) {
+                            triggerToast("Xatolik", "Aqlli modullarni yangilashda xatolik yuz berdi.", "error");
+                          }
+                        }}
+                        className={`w-full py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-center border cursor-pointer transition-all duration-150 rounded-lg ${
+                          greenhouseModulesEnabled
+                            ? 'bg-amber-950/20 hover:bg-amber-900/10 text-amber-500 border-amber-500/30'
+                            : 'bg-sky-950/20 hover:bg-sky-900/30 text-sky-400 border-sky-500/30'
+                        }`}
+                        type="button"
+                      >
+                        {greenhouseModulesEnabled ? "🔒 MODULLARNI BLOKLASH" : "🔓 MODULLARGA RUXSAT BERISH"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className={`p-4 rounded-xl border text-[11px] font-mono space-y-2 ${
+                  theme === 'dark' ? 'bg-zinc-900/20 border-zinc-800 text-zinc-400' : 'bg-slate-50 border-slate-100 text-slate-600'
+                }`}>
+                  <span className="block font-bold text-[9px] text-zinc-500">🔒 ADMIN RUXSATNOMASI STATUSI:</span>
+                  <div className="flex items-center justify-between">
+                    <span>GLOBAL ALERTLAR:</span>
+                    <span className={`font-black uppercase ${globalNotificationsEnabled ? 'text-emerald-500' : 'text-amber-500'}`}>
+                      {globalNotificationsEnabled ? 'RUXSAT ETILGAN' : 'ADMIN TOMONIDAN YOPILGAN'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>AQLLI ISSIQXONA INTERACTIV MODULLARI:</span>
+                    <span className={`font-black uppercase ${greenhouseModulesEnabled ? 'text-emerald-500' : 'text-amber-550'}`}>
+                      {greenhouseModulesEnabled ? 'FAOL / OCHIQ' : 'CHIKLANGAN'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION 2: CANALS AND SETTINGS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3.5">
+                  <span className="block text-[10px] font-bold text-zinc-400 font-mono uppercase tracking-wider">📡 OGOHLANTIRISH KANALLARI STATUSI</span>
+                  
+                  {/* Channel Toggles */}
+                  <div className={`p-3.5 rounded-xl border space-y-3 ${
+                    theme === 'dark' ? 'bg-[#151515] border-zinc-800' : 'bg-slate-50/50 border-slate-150'
+                  }`}>
+                    {/* Audio Enable sound */}
+                    <div className="flex items-center justify-between font-mono text-[11px] text-zinc-500 uppercase">
+                      <span className="flex items-center gap-1.5 text-zinc-400"><Volume2 className="h-4 w-4 text-sky-500 animate-pulse" /> Audio Chime:</span>
+                      <button 
+                        onClick={() => {
+                          setNotifSoundEnabled(!notifSoundEnabled);
+                          playElectronicChime();
+                        }}
+                        className={`px-2 py-1 font-bold cursor-pointer text-[9px] rounded-lg border transition-all ${
+                          notifSoundEnabled 
+                            ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10' 
+                            : 'text-zinc-500 border-zinc-700/50 hover:text-white hover:bg-zinc-800'
+                        }`}
+                        type="button"
+                      >
+                        {notifSoundEnabled ? "YOQILGAN" : "O'CHIRILGAN"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between font-mono text-[11px] text-zinc-500 uppercase">
+                      <span>1. In-App Toast:</span>
+                      <button 
+                        onClick={() => {
+                          setNotifInAppEnabled(!notifInAppEnabled);
+                          triggerToast("BOSHQA VARIANT: SOZLAMALAR YAXSHILANDI", "Visual toast xabarnomalar tizimi yangilandi.", "info", 5000);
+                        }}
+                        className={`px-2 py-1 font-bold cursor-pointer text-[9px] rounded-lg border transition-all ${
+                          notifInAppEnabled 
+                            ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10' 
+                            : 'text-zinc-500 border-zinc-700/50 hover:text-white hover:bg-zinc-800'
+                        }`}
+                        type="button"
+                      >
+                        {notifInAppEnabled ? "FAOL" : "O'CHIRILGAN"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between font-mono text-[11px] text-zinc-500 uppercase">
+                      <span>2. Telegram Bot:</span>
+                      <button 
+                        onClick={() => {
+                          setNotifTelegramSim(!notifTelegramSim);
+                          triggerToast("Telegram kanali sozlandi", "Telegram bot simulyatsiyasi o'zgartirildi.", "info", 5000);
+                        }}
+                        className={`px-2 py-1 font-bold cursor-pointer text-[9px] rounded-lg border transition-all ${
+                          notifTelegramSim 
+                            ? 'text-sky-400 border-sky-500/20 bg-sky-500/10' 
+                            : 'text-zinc-500 border-zinc-700/50 hover:text-white hover:bg-zinc-800'
+                        }`}
+                        type="button"
+                      >
+                        {notifTelegramSim ? "SIMULYATSIYa" : "YOPUQ"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between font-mono text-[11px] text-zinc-500 uppercase">
+                      <span>3. Browser System Push:</span>
+                      <button 
+                        onClick={() => {
+                          setNotifBrowserSim(!notifBrowserSim);
+                          triggerToast("Tizim Push simulyatori", "Browser orqali simulyatsiya sozlamalari yangilandi.", "info", 5000);
+                        }}
+                        className={`px-2 py-1 font-bold cursor-pointer text-[9px] rounded-lg border transition-all ${
+                          notifBrowserSim 
+                            ? 'text-amber-500 border-amber-500/20 bg-amber-500/10' 
+                            : 'text-zinc-500 border-zinc-700/50 hover:text-white hover:bg-zinc-800'
+                        }`}
+                        type="button"
+                      >
+                        {notifBrowserSim ? "SIMULYATSIYa" : "YOPUQ"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <span className="block text-[10px] font-bold text-zinc-400 font-mono uppercase tracking-wider">⏳ MUHLAT VA OGOHLANTIRISH CHEGARASI</span>
+                  
+                  <div className={`p-4 rounded-xl border space-y-4 ${
+                    theme === 'dark' ? 'bg-[#151515] border-zinc-800' : 'bg-slate-50/50 border-slate-150'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-zinc-400 font-bold uppercase font-mono">Muhlat oralig'i:</span>
+                      <select
+                        value={notifThresholdHours}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          setNotifThresholdHours(val);
+                          triggerToast("Oraliq yangilandi", `Task ogohlantirish muddati ${val} soatga sozladi.`, "info", 6000);
+                        }}
+                        className={`text-xs py-1 px-2 border rounded-lg font-mono text-center w-28 ${
+                          theme === 'dark' 
+                            ? 'bg-black border-zinc-800 text-zinc-200' 
+                            : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <option value={12}>12 soat</option>
+                        <option value={24}>24 soat</option>
+                        <option value={48}>48 soat</option>
+                        <option value={72}>72 soat</option>
+                      </select>
+                    </div>
+                    <p className="text-[10px] text-zinc-400 tracking-tight leading-relaxed font-sans">
+                      Topshiriqlarning belgilangan ijro muddati mana shu vaqt oralig'idan kam qolganda, tizim mas'ullarga telegram va in-app visual ogohlantirishlar jo'natishni boshlaydi.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: SIMULATOR LIVE TESTS */}
+              <div className="space-y-3">
+                <span className="block text-[10px] font-bold text-zinc-400 font-mono uppercase tracking-wider">🎭 TIZIMI INTEGRATSIYASI IMTAKUNI (SANDBOX TESTS)</span>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      triggerToast(
+                        "⏳ MUHLAT YaQIN (OGOHLANTIRISH)",
+                        `"Datchik darchasini dezinfeksiyalash" topshirig'ingiz muddati yakunlanishiga kamida ${notifThresholdHours} soat qoldi.`,
+                        'warning'
+                      );
+                      if (notifSoundEnabled) playElectronicChime();
+                    }}
+                    className={`p-3.5 text-xs font-mono font-bold uppercase transition-all duration-200 shadow-md flex items-center justify-center gap-1.5 border hover:scale-[1.02] cursor-pointer rounded-xl ${
+                      theme === 'dark'
+                        ? 'bg-amber-950/20 text-amber-400 border-amber-500/30 hover:border-amber-400 hover:bg-amber-950/30'
+                        : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                    }`}
+                    type="button"
+                  >
+                    ⚡ Test sarg'ish signal
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      triggerToast(
+                        "🎉 VAZIFA MUvAFFAQIYATLI YAKUNLANDI",
+                        "O'tkazilgan tahlillar natijasida barcha datchiklar muvaffaqiyatli topshirildi va hisobot tasdiqlandi.",
+                        'success'
+                      );
+                      try {
+                        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                        const ctx = new AudioCtx();
+                        const now = ctx.currentTime;
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(523.25, now); // C5
+                        osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                        osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                        osc.frequency.setValueAtTime(1046.5, now + 0.3); // C6
+                        gain.gain.setValueAtTime(0, now);
+                        gain.gain.linearRampToValueAtTime(0.12, now + 0.05);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.5);
+                      } catch(e) {}
+                    }}
+                    className={`p-3.5 text-xs font-mono font-bold uppercase transition-all duration-200 shadow-md flex items-center justify-center gap-1.5 border hover:scale-[1.02] cursor-pointer rounded-xl ${
+                      theme === 'dark'
+                        ? 'bg-emerald-950/20 text-emerald-400 border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-950/30'
+                        : 'bg-emerald-50 text-emerald-850 border-emerald-200 hover:bg-emerald-100'
+                    }`}
+                    type="button"
+                  >
+                    🚀 Test yashil signal
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className={`p-4 border-t flex items-center justify-end gap-3 ${
+              theme === 'dark' ? 'bg-[#191919] border-zinc-800' : 'bg-slate-50 border-slate-150'
+            }`}>
+              <button
+                onClick={() => {
+                  setShowNotifModal(false);
+                  triggerToast("Saqlandi", "Sozlamalar kuchga kirdi.", "success", 3000);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition-all shadow-md hover:shadow-emerald-500/20"
+                type="button"
+              >
+                Tasdiqlash & Yopish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Real-time Floating Toast Notification Overlay Wrapper (renders in-app toast alerts) */}
       <div id="toast-overlay-wrapper" className="fixed bottom-6 right-6 z-50 flex flex-col gap-3.5 max-w-sm w-full select-none pointer-events-none">
